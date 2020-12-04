@@ -24,15 +24,23 @@ class Config {
    */
   constructor() {
     this.config = {
-      // *Mandatory*
+      /** 
+			 * *Mandatory* configuration param.
+			 * First you need to get an OpenWeather API key (aka "appid"):
+			 * https://openweathermap.org/appid
+			 */
       'open-weather-api-key': '',
 
-      // *Optional*, only if you want to use a service account
-      // see https://cloud.google.com/iam/docs/service-accounts
+      /** 
+			 * *Optional*, only if you want to use a service account.
+			 * If you leave this parameter empty, apps script will use
+			 * an active Google account under which you run the apps script. 
+       * For more see: https://cloud.google.com/iam/docs/service-accounts
+			 */
       'service-account': {},
       
       /*
-       * *Optional* spreadsheet ID.
+       * *Optional*, spreadsheet ID.
        * Specify your configuration Spreadsheet ID or use a current Spreadsheet, e.g.:
        * const configSpreadsheetId = "-1GGwYZP34HHejwrO19cK5r108nQr7FaYfg5YJOcw0jnch4";
        * OR
@@ -41,7 +49,7 @@ class Config {
       'spreadsheet-id': '',
 
       /*
-       * *Optional* sheet (tab) name.
+       * *Optional*, sheet (tab) name.
        * Specify your sheet (tab) name with the IOs/LIs IDs,
        * e.g. for testing we use "TEST", for production "PROD".
        * For testing purposes we suggest to use a different DV360 campaign,
