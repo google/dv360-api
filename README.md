@@ -38,9 +38,11 @@ Are you logged in to the correct account with the script?
 *First*, you should use your _script_ ID and not _spreadsheet_ ID. Where to find the script ID associated with your spreadsheet? See below:
 
 In the spreadsheet menu click on the "Tools > Script editor".
+
 ![Click on the "Tools > Script editor"](imgs/tools-script-editor.png?raw=true)
 
 From the opened browser window copy a part of the URL with the script ID (this is the part which is between `/d/` and `/edit`). As an alternative you can click "File > Project properties" in the script editor.
+
 ![Copy a part of the URL with the script ID](imgs/script-id.png?raw=true)
 
 *Second*, please make sure you use the ID of a script that you have access to.
@@ -51,15 +53,19 @@ After you copied the correct script ID please run [clasp clone <ID>](https://git
 
 First, please make sure you ran `clasp push -f` and you can see the project files in the
 script editor. After reloading the Script Editor window it should look like this:
+
 ![Project files](imgs/apps-script-files.png?raw=true)
 
 Now please go back to the spreadsheet. After reloading the window you should see a new menu item "Weather Based Marketing":
+
 ![Spreadsheet menu](imgs/spreadsheet-menu.png?raw=true)
 
 In order to create an example sheet with the default DV360 advertiser configuration please click on the newly created menu item "Weather Based Marketing > Create a test config". Most probably you will be asked to authorize the script to run under your account. For more information please check [the developer guide](https://developers.google.com/apps-script/guides/services/authorization).
+
 ![Authorization required](imgs/authorization-required.png?raw=true)
 
 After successful authorization you need to click the menu item ("Weather Based Marketing > Create a test config") one more time. Now you should be able to see a newly created sheet (tab) in your spreadsheet:
+
 ![Advertiser config sheet](imgs/advertiser-config-sheet.png?raw=true)
 
 Please configure the newly created table: 
@@ -74,6 +80,7 @@ Please configure the newly created table:
 ## OpenWeather API set up
 
 After setting up the advertisers sheet you are almost ready to run the campaign. Actually you can try to do so. Please go to the spreadsheet and click "Weather Based Marketing > Check weather and sync DV360".
+
 ![Check weather](imgs/check-weather.png?raw=true)
 
 If you haven't set your OpenWeather API key you will see an error:
@@ -93,9 +100,11 @@ After you set the key you can run "Weather Based Marketing > Check weather and s
 Most probably you don't want to run the script manually every hour/day/week/etc. For this you can use [time driven triggers](https://developers.google.com/apps-script/guides/triggers/installable#time-driven_triggers). 
 
 In the script editor go to "Edit > Current project's triggers".
+
 ![Advertiser config sheet](imgs/triggers.png?raw=true)
 
 Add a trigger by clicking "+ Add Trigger" in the lower right corner.
+
 ![Add trigger](imgs/add-trigger.png?raw=true)
 
 Specify the function and schedule: 
@@ -104,6 +113,7 @@ Specify the function and schedule:
 - "Select event source" = "Time-driven"
 - "Select type of time based trigger" = "Day timer" (to run once per day)
 - "Select time of day" = "7am to 8am" (to run in the morning)
+
 ![Time trigger](imgs/time-trigger.png?raw=true)
 
 Add as many triggers as you need. E.g. you can run one trigger in the morning and one in the evening.
@@ -111,4 +121,5 @@ Add as many triggers as you need. E.g. you can run one trigger in the morning an
 # Contribution
 
 If you want to contribute to the project you can fork us on GitHub. Also if you liked our open source project give us a star on GitHub.
+
 ![GitHub](imgs/github.png?raw=true)
