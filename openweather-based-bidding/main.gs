@@ -40,7 +40,7 @@ function monitorWeatherAndSyncWithDV360() {
   }
 
   // Filter out empty rows, since we took all rows from the specified range
-  const configFromSpreadsheet = sheet.getRange('A:H').getValues()
+  const configFromSpreadsheet = sheet.getRange('A:I').getValues()
     .filter((a) => a[0] || a[1]);
 
   for (let i = 1; i < configFromSpreadsheet.length; i++) {
@@ -51,35 +51,44 @@ function monitorWeatherAndSyncWithDV360() {
         lon                 = configFromSpreadsheet[i][4],
         tempMin             = configFromSpreadsheet[i][5],
         tempMax             = configFromSpreadsheet[i][6],
-        onlyIfRainingOrSnow = configFromSpreadsheet[i][7];
+        onlyIfRainingOrSnow = configFromSpreadsheet[i][7],
+        windMin             = configFromSpreadsheet[i][8];
 
     const currentWeather = weather.getCurrent(lat, lon);
 
     const currentTemperature        = currentWeather.temp;
     const currentRainSnowCondition  = currentWeather.hasOwnProperty('snow')
       || currentWeather.hasOwnProperty('rain');
+    const currentWindspeed          = currentWeather.wind_speed;
 
-    /*
-     * Check if the current weather satisfies *all*
-     * the conditions from the config spreadsheet:
-     * 1. Temperature condition
-     * 2. Raining/snowing conditions
-     */
+    // Check if min temperature condition is satisfied
     let tempConditionSatisfied = true;
     if (tempMin || tempMin !== '') {
       tempConditionSatisfied = (tempMin <= currentTemperature);
     }
 
+    // Check if max temperature condition is satisfied
     if (tempMax || tempMax !== '') {
       tempConditionSatisfied = tempConditionSatisfied
         && (currentTemperature <= tempMax);
     }
 
-    const activate = onlyIfRainingOrSnow
-      ? tempConditionSatisfied && currentRainSnowCondition
-      : tempConditionSatisfied;
+    // Check if rain/snow condition is satisfied
+    let rainSnowConditionSatisfied = true;
+    if (onlyIfRainingOrSnow) {
+      rainSnowConditionSatisfied = currentRainSnowCondition;
+    }
 
-    // Log the status to the dubug panel
+    // Check if wind speed condition is satisfied
+    let windConditionSatisfied = true;
+    if (windMin) {
+      windConditionSatisfied = (currentWindspeed >= windMin);
+    }
+
+    // Check if all conditions are satisfied
+    const activate = (rainSnowConditionSatisfied) && tempConditionSatisfied && windConditionSatisfied;
+
+    // Log status to debug panel
     Logger.log(
       `+ Updating: IO:${insertionOrderId}, LI:${lineItemId}, Active:${activate}, `
       + `Min.:${tempMin}, Max.:${tempMax}, Curr. Temp.:${currentTemperature} `
@@ -94,11 +103,12 @@ function monitorWeatherAndSyncWithDV360() {
     dv360.switchLIStatus(advertiserId, lineItemId, activate);
 
     // Log the status to the spreadsheet
-    const row = i+1;
-    sheet.getRange( 'I' + row ).setValue( currentTemperature );
-    sheet.getRange( 'J' + row ).setValue( currentRainSnowCondition );
-    sheet.getRange( 'K' + row ).setValue( activate ? 'Active' : 'Paused' );
-    sheet.getRange( 'L' + row ).setValue( new Date().toISOString() );
+    const row = i + 1;
+    sheet.getRange( 'J' + row ).setValue( currentTemperature );
+    sheet.getRange( 'K' + row ).setValue( currentRainSnowCondition );
+    sheet.getRange( 'L' + row ).setValue( currentWindspeed );
+    sheet.getRange( 'M' + row ).setValue( activate ? 'Active' : 'Paused' );
+    sheet.getRange( 'N' + row ).setValue( new Date().toISOString() );
   }
 
   Logger.log('[END] monitorWeatherAndSyncWithDV360');

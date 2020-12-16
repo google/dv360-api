@@ -47,8 +47,8 @@ function createExampleTable() {
     return;
   }
 
-  sheet.getRange("A1:L2").setValues(getExampleTableValues());
-  sheet.getRange("A1:L1")
+  sheet.getRange("A1:N2").setValues(getExampleTableValues());
+  sheet.getRange("A1:N1")
     .setBackgroundRGB(102, 204, 255)
     .setFontWeight("bold");
 
@@ -71,8 +71,10 @@ function getExampleTableValues() {
       'Min. Temperature',
       'Max. Temparature',
       'Only when Raining/Snowing',
+      'Min. Windspeed',
       'Current Temperature',
       'Current Raining/Snowing',
+      'Current Windspeed',
       'DV360 Status',
       'Last Updated',
     ],
@@ -85,6 +87,8 @@ function getExampleTableValues() {
       '<Float>',
       '<Float>',
       '<0 or 1>',
+      '<Float>',
+      'Do not edit',
       'Do not edit',
       'Do not edit',
       'Do not edit',
