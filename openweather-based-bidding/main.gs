@@ -86,13 +86,18 @@ function monitorWeatherAndSyncWithDV360() {
     }
 
     // Check if all conditions are satisfied
-    const activate = (rainSnowConditionSatisfied) && tempConditionSatisfied && windConditionSatisfied;
+    const activate = rainSnowConditionSatisfied &&
+                      tempConditionSatisfied &&
+                      windConditionSatisfied;
 
     // Log status to debug panel
     Logger.log(
-      `+ Updating: IO:${insertionOrderId}, LI:${lineItemId}, Active:${activate}, `
-      + `Min.:${tempMin}, Max.:${tempMax}, Curr. Temp.:${currentTemperature} `
-      + `Curr. Rain/Snow:${currentRainSnowCondition}`
+      `Updating: IO: ${insertionOrderId}, LI: ${lineItemId}, `
+      + `Active: ${activate}, `
+      + `Temp Min.: ${tempMin}, Temp Max.: ${tempMax}, `
+      + `Curr. Temp.: ${currentTemperature}, `
+      + `Curr. Rain/Snow: ${currentRainSnowCondition}, `
+      + `Wind Min: ${windMin}, Curr. Wind speed: ${currentWindspeed}`
     );
 
     /*
