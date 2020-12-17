@@ -56,11 +56,27 @@ class Config {
        * so you can specify your test IDs in the "TEST" sheet.
        */
       'sheet-name': '',
+
+      // Column mappings
+      'col-line-item-id': 0,
+      'col-io-id': 1,
+      'col-advertiser-id': 2,
+      'col-lat': 3,
+      'col-lon': 4,
+      'col-temp-min': 5,
+      'col-temp-max': 6,
+      'col-rain-snow': 7,
+      'col-wind-min': 8,
+      'col-temp-curr': 9,
+      'col-precip-curr': 10,
+      'col-wind-curr': 11,
+      'col-status': 12,
+      'col-last-update': 13
     };
   }
 
   /**
-   * Returns the config variable value by it's name
+   * Returns the config variable value by its name
    *
    * @param {string} name Config variable name
    * @return {*} Variable value
