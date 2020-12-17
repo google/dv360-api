@@ -1,6 +1,11 @@
 {
   "timeZone": "America/New_York",
   "dependencies": {
+    "enabledAdvancedServices": [{
+      "userSymbol": "Sheets_v4",
+      "serviceId": "sheets",
+      "version": "v4"
+    }],
     "libraries": [{
       "userSymbol": "OAuth2",
       "libraryId": "1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF",
