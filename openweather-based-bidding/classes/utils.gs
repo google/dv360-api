@@ -41,4 +41,44 @@ class Utils {
 
     return (Math.floor(daysAgoMillis / 1000)).toString();
   }
+
+  /**
+   * Get JSON entry value for the provided path (similar to XPath in XML)
+   *
+   * @param {string} path Format "<entity>.<entity>.<array index>.<entity>"
+   * @param {JSON} json JSON or JavaScript Object
+   * @returns {*|null} Value from JSON or null if value does not exist
+   */
+  static getValueFromJSON(path, json) {
+    let tmpJson  = json, 
+        val       = null;
+    
+    for (const part of path.split('.')) {
+      console.log('part', part);
+      let tmpVal;
+      const intVal = parseInt(part);
+      if (intVal && intVal in tmpJson) {
+        console.log(61);
+        tmpVal = tmpJson[intVal];
+      } else if (tmpJson.hasOwnProperty(part)) {
+        console.log(64);
+        tmpVal = tmpJson[part];
+      } else {
+        console.log(67);
+        break;
+      }
+      
+      const typeOf = typeof tmpVal;
+      console.log('typeOf', typeOf, 'tmpVal', tmpVal);
+      if ('string' == typeOf || 'number' == typeOf) {
+        return tmpVal;
+      } else {
+        tmpJson = tmpVal;
+      }
+    }
+
+    return val;
+  }
 }
+
+module.exports = Utils;
