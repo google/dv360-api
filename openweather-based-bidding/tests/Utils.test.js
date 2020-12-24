@@ -16,8 +16,8 @@
  */
 
 /**
- * This test is based on [jest](https://jestjs.io/docs/en/getting-started.html).
- * Just run a shell command:
+ * This is a test file, which is based on [jest](https://jestjs.io/docs/en/getting-started.html).
+ * In order to run the test just use a shell command:
  * ```
  * ~$ npm run test
  * ```
