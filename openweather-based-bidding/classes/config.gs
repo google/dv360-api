@@ -59,13 +59,13 @@ class Config {
 
       // Column mappings
       'col-line-item-id': 0,
-      'col-io-id': 1,
+      'col-insertion-order-id': 1,
       'col-advertiser-id': 2,
       'col-lat': 3,
       'col-lon': 4,
       'col-temp-min': 5,
       'col-temp-max': 6,
-      'col-rain-snow': 7,
+      'col-precip': 7,
       'col-wind-min': 8,
       'col-temp-curr': 9,
       'col-precip-curr': 10,
