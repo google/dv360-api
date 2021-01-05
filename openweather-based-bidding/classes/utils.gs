@@ -79,6 +79,16 @@ class Utils {
 
     return val;
   }
+  
+  /**
+   * Checks if all first level object values resolve to true
+   *
+   * @param {!Object} obj
+   * @return {boolean}
+   */
+  function allObjectPropertiesTrue(obj) {
+    return Object.keys(obj).every((k) => obj[k]);
+  }
 }
 
 module.exports = Utils;

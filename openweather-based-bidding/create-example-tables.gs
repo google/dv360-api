@@ -47,10 +47,19 @@ function createExampleTable() {
     return;
   }
 
+  // Populate values
   sheet.getRange("A1:N2").setValues(getExampleTableValues());
+
+  // Add colors
   sheet.getRange("A1:N1")
     .setBackgroundRGB(102, 204, 255)
     .setFontWeight("bold");
+
+  // Set rain/snow column to only accept TRUE/FALSE
+  const cell = sheet.getRange('H2:H');
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['TRUE', 'FALSE'], true).setAllowInvalid(false).build();
+  cell.setDataValidation(rule);
 
   SpreadsheetApp.getUi().alert("Done");
 }
@@ -86,7 +95,7 @@ function getExampleTableValues() {
       '<Float Longitude>',
       '<Float>',
       '<Float>',
-      '<0 or 1>',
+      'FALSE',
       '<Float>',
       'Do not edit',
       'Do not edit',
