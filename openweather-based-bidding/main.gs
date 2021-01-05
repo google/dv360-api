@@ -46,13 +46,13 @@ function monitorWeatherAndSyncWithDV360() {
     const row = rows[i];
 
     const lineItemId        = parseInt(row[config.get('col-line-item-id')]),
-        insertionOrderId    = parseInt(row[config.get('col-io-id')]),
+        insertionOrderId    = parseInt(row[config.get('col-insertion-order-id')]),
         advertiserId        = parseInt(row[config.get('col-advertiser-id')]),
         lat                 = row[config.get('col-lat')],
         lon                 = row[config.get('col-lon')],
         tempMin             = row[config.get('col-temp-min')],
         tempMax             = row[config.get('col-temp-max')],
-        onlyIfRainingOrSnow = row[config.get('col-rain-snow')] === 'TRUE',
+        onlyIfPrecipitation = row[config.get('col-precip')] === 'TRUE',
         windMin             = row[config.get('col-wind-min')];
 
     // Get current weather conditions
@@ -73,35 +73,37 @@ function monitorWeatherAndSyncWithDV360() {
     };
 
     // Check if min temperature condition is satisfied
-    if (tempMin) {
-      satisfiedConditions.tempMin = tempMin <= row[config.get('col-temp-curr')];
+    if (tempMin && !isNaN(tempMin)) {
+      satisfiedConditions.tempMin = parseFloat(tempMin) <= parseFloat(row[config.get('col-temp-curr')]);
     }
 
     // Check if max temperature condition is satisfied
-    if (tempMax) {
-      satisfiedConditions.tempMax = row[config.get('col-temp-curr')] <= tempMax;
+    if (tempMax && !isNaN(tempMax)) {
+      satisfiedConditions.tempMax = parseFloat(row[config.get('col-temp-curr')]) <= parseFloat(tempMax);
     }
 
-    // Check if rain/snow condition is satisfied
-    if (onlyIfRainingOrSnow) {
+    // Check if precipitation condition is satisfied
+    if (onlyIfPrecipitation) {
       satisfiedConditions.precip = row[config.get('col-precip-curr')];
     }
 
     // Check if wind speed condition is satisfied
-    if (windMin) {
-      satisfiedConditions.windSpeed = row[config.get('col-wind-curr')] >= windMin;
+    if (windMin && !isNaN(windMin)) {
+      satisfiedConditions.windSpeed = parseFloat(row[config.get('col-wind-curr')]) >= parseFloat(windMin);
     }
 
     // Check if all conditions are satisfied
-    const activate = allObjectPropertiesTrue(satisfiedConditions);
+    const activate = Utils.allObjectPropertiesTrue(satisfiedConditions);
 
-    // Switch Line Item status
-    dv360.switchLIStatus(advertiserId, lineItemId, activate);
+    // Switch Status
+    if (lineItemId) {
+      dv360.switchLIStatus(advertiserId, lineItemId, activate);
+    }
+    else if (insertionOrderId) {
+      dv360.switchIOStatus(advertiserId, insertionOrderId, activate)
+    }
 
-    // Switch Insertion Order status
-    dv360.switchIOStatus(advertiserId, insertionOrderId, activate)
-
-    // Set new status
+    // Update status in spreadsheet
     row[config.get('col-status')] = activate ? 'Active' : 'Paused';
 
     // Set last update timestamp
@@ -111,19 +113,11 @@ function monitorWeatherAndSyncWithDV360() {
     if (!sheetsApi.write([row], configSpreadsheetName + '!A' + (i + 1))) {
       Logger.log('An error occurred, retrying in 30s');
       Utilities.sleep(30000);
+
+      // Decrement i so that it ends up the same in the next for-loop iteration
       i--;
     }
   }
 
   Logger.log('[END] monitorWeatherAndSyncWithDV360');
-}
-
-/**
- * Checks if all first level object values resolve to true
- *
- * @param {!Object} obj
- * @return {boolean}
- */
-function allObjectPropertiesTrue(obj) {
-  return Object.keys(obj).every((k) => obj[k]);
 }
