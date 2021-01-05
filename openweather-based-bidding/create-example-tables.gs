@@ -57,7 +57,8 @@ function createExampleTable() {
 
   // Set rain/snow column to only accept TRUE/FALSE
   const cell = sheet.getRange('H2:H');
-  const rule = SpreadsheetApp.newDataValidation().requireValueInList(['TRUE', 'FALSE'], true).setAllowInvalid(false).build();
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['TRUE', 'FALSE'], true).setAllowInvalid(false).build();
   cell.setDataValidation(rule);
 
   SpreadsheetApp.getUi().alert("Done");
