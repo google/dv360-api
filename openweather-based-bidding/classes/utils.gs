@@ -54,22 +54,17 @@ class Utils {
         val       = null;
     
     for (const part of path.split('.')) {
-      console.log('part', part);
       let tmpVal;
       const intVal = parseInt(part);
       if (intVal && intVal in tmpJson) {
-        console.log(61);
         tmpVal = tmpJson[intVal];
       } else if (tmpJson.hasOwnProperty(part)) {
-        console.log(64);
         tmpVal = tmpJson[part];
       } else {
-        console.log(67);
         break;
       }
       
       const typeOf = typeof tmpVal;
-      console.log('typeOf', typeOf, 'tmpVal', tmpVal);
       if ('string' == typeOf || 'number' == typeOf) {
         return tmpVal;
       } else {
@@ -79,16 +74,28 @@ class Utils {
 
     return val;
   }
-  
+
   /**
-   * Checks if all first level object values resolve to true
+   * Get api related headers (those which are in the form "api:<entity1>.<entity2>")
    *
-   * @param {!Object} obj
-   * @return {boolean}
+   * @param {array} headers All headers from the spreadsheet
+   * @returns {Object} List of the api related headers in the format {'api:<entity1>.<entity2>': <column number>}
    */
-  function allObjectPropertiesTrue(obj) {
-    return Object.keys(obj).every((k) => obj[k]);
+  static getApiHeaders(headers, ext = 'api:') {
+    let i = 0;
+    const output = {};
+    for (const header of headers) {
+      if (header.startsWith(ext)) {
+        output[ header.substring(ext.length) ] = i;
+      }
+
+      i++;
+    }
+    return output;
   }
 }
 
-module.exports = Utils;
+// For tests
+if (typeof module !== 'undefined') {
+  module.exports = Utils;
+}

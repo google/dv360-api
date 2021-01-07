@@ -15,12 +15,22 @@
  */
 
 /**
- * Helper class to wrap calls to Sheets API
+ * Helper class to wrap calls to Sheets API.
+ * Sheets API Read/Write usually works faster then reading and writing from/to
+ * spreadsheet directly.
  */
 class SheetsApi {
   constructor(spreadsheetId) {
     /** @type {string} */
     this.spreadsheetId = spreadsheetId;
+
+    /** @type {null|Object} */
+    this.sheetObj = null;
+
+    /** @type {Object} */
+    this.defaultMode = {
+      'valueRenderOption': 'FORMULA',
+    };
   }
 
   /**
@@ -42,6 +52,8 @@ class SheetsApi {
     try {
       Sheets_v4.Spreadsheets.Values
         .update(valueRange, this.spreadsheetId, range, options);
+      SpreadsheetApp.flush();
+
       return true;
     } catch (e) {
       return false;
@@ -52,10 +64,69 @@ class SheetsApi {
    * Fetches data from sheet
    *
    * @param {string} range A1-Range
+   * @param {string} renderMode Render mode, [more info](https://developers.google.com/sheets/api/reference/rest/v4/ValueRenderOption)
    *
    * @return {!Array<!Array<!Object>>}
    */
-  get(range) {
-    return Sheets_v4.Spreadsheets.Values.get(this.spreadsheetId, range);
+  get(range, renderMode) {
+    return Sheets_v4.Spreadsheets.Values.get(
+        this.spreadsheetId,
+        range,
+        renderMode || this.defaultMode
+      )['values'];
+  }
+
+  /**
+   * Fetches data from one cell from the sheet
+   *
+   * @param {string} row Row number
+   * @param {string} col Column number
+   *
+   * @return {Object}
+   */
+  getOne(row, col) {
+    if (! this.sheetObj) {
+      this.getSheetObject();
+    }
+
+    return this.sheetObj.getRange(row, col).getValues()[0][0];
+  }
+
+  /**
+   * Get a spreadsheet object to perform read/write operations.
+   * Check if specified spreadsheet settings are correct 
+   * and init default sheet object.s
+   * 
+   * @param name Optional. Sheet name.
+   * @return {Object}
+   */
+  getSheetObject(name) {
+    const sheet = SpreadsheetApp.openById(configSpreadsheetId)
+      .getSheetByName(name || configSpreadsheetName);
+    if (!sheet) {
+      throw 'Cannot find spreadsheet with the name: '
+        + (name || configSpreadsheetName);
+    }
+
+    if (! name) {
+      this.sheetObj = sheet;
+    }
+
+    return sheet;
+  }
+
+  /**
+   * Process sheet formulas (force them to be re-evaluated)
+   *
+   * @param {string} range A1-Range
+   */
+  forceFormulasEval(row, col) {
+    const formula = this.sheetObj.getRange(row,col).getFormula();
+
+    this.sheetObj.getRange(row, col).setFormula(''); 
+    SpreadsheetApp.flush();
+
+    this.sheetObj.getRange(row, col).setFormula(formula);
+    SpreadsheetApp.flush();
   }
 }

@@ -23,7 +23,7 @@
  * ```
  */
 
-const Utils = require('../classes/Utils.gs');
+const Utils = require('../classes/utils.gs');
 
 test('encodeParameters', () => {
     const params = {'foo': 1, 'bar': 2};
@@ -56,4 +56,16 @@ test('getValueFromJSON', () => {
     expect(
         Utils.getValueFromJSON('bar.bar1', json)
     ).toBe('foo1');
+});
+
+test('getApiHeaders', () => {
+    const headers = [
+        'no api header 1',
+        'api:header1',
+        'no api header 2',
+        'api:header2'
+    ];
+    expect(Utils.getApiHeaders(headers)).toStrictEqual(
+        {'header1': 1, 'header2': 3}
+    );
 });

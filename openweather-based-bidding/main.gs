@@ -26,97 +26,66 @@ const sheetsApi = new SheetsApi(configSpreadsheetId);
  */
 function monitorWeatherAndSyncWithDV360() {
   Logger.log('[START] monitorLineItemChangesAndSyncWithDV360');
+
   // Get items from Sheet
-  const data = sheetsApi.get(configSpreadsheetName);
-  const rows = data['values'];
+  const rows = sheetsApi.get(configSpreadsheetName);
+
+  // Process sheet headers
+  const apiHeaders = Utils.getApiHeaders(rows[0]);
+  config.setHeaders(rows[0]);
 
   // Configure all wrapper classes
   const auth     = new Auth(config.get('service-account'));
   const dv360    = new DV360(auth.getAuthToken());
   const weather  = new OpenWeather(config.get('open-weather-api-key'));
 
-  // Get config from the spreadsheet
-  const sheet = SpreadsheetApp.openById(configSpreadsheetId)
-    .getSheetByName(configSpreadsheetName);
-  if (!sheet) {
-    throw 'Cannot find spreadsheet with the name: ' + configSpreadsheetName;
-  }
+  sheetsApi.getSheetObject();
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
+    const iPlus1 = i + 1;
 
-    const lineItemId        = parseInt(row[config.get('col-line-item-id')]),
-        insertionOrderId    = parseInt(row[config.get('col-insertion-order-id')]),
-        advertiserId        = parseInt(row[config.get('col-advertiser-id')]),
-        lat                 = row[config.get('col-lat')],
-        lon                 = row[config.get('col-lon')],
-        tempMin             = row[config.get('col-temp-min')],
-        tempMax             = row[config.get('col-temp-max')],
-        onlyIfPrecipitation = row[config.get('col-precip')] === 'TRUE',
-        windMin             = row[config.get('col-wind-min')];
+    const lineItemId = parseInt(row[config.getHeaderIndex('col-line-item-id')]),
+          insertionOrderId = parseInt(
+            row[config.getHeaderIndex('col-insertion-order-id')]
+          ),
+          advertiserId = parseInt(
+            row[config.getHeaderIndex('col-advertiser-id')]
+          ),
+          lat = parseFloat(row[config.getHeaderIndex('col-lat')]),
+          lon = parseFloat(row[config.getHeaderIndex('col-lon')]);
 
-    // Get current weather conditions
-    const currentWeather = weather.getCurrent(lat, lon);
+    // Get weather conditions
+    const allWeather = weather.getAll(lat, lon);
 
-    // Update row with current weather data
-    row[config.get('col-temp-curr')] = currentWeather.temp;
-    row[config.get('col-precip-curr')] = currentWeather.hasOwnProperty('snow')
-      || currentWeather.hasOwnProperty('rain');
-    row[config.get('col-wind-curr')] = currentWeather.wind_speed;
-
-    // Initialize all conditions as satisfied
-    const satisfiedConditions = {
-      tempMin: true,
-      tempMax: true,
-      precip: true,
-      windSpeed: true,
-    };
-
-    // Check if min temperature condition is satisfied
-    if (tempMin && !isNaN(tempMin)) {
-      satisfiedConditions.tempMin = parseFloat(tempMin) <= parseFloat(row[config.get('col-temp-curr')]);
+    // Extract all weather variables and write their values to the spreadsheet
+    for (apiHeader in apiHeaders) {
+      row[ apiHeaders[apiHeader] ] = Utils
+        .getValueFromJSON(apiHeader, allWeather);
     }
 
-    // Check if max temperature condition is satisfied
-    if (tempMax && !isNaN(tempMax)) {
-      satisfiedConditions.tempMax = parseFloat(row[config.get('col-temp-curr')]) <= parseFloat(tempMax);
-    }
-
-    // Check if precipitation condition is satisfied
-    if (onlyIfPrecipitation) {
-      satisfiedConditions.precip = row[config.get('col-precip-curr')];
-    }
-
-    // Check if wind speed condition is satisfied
-    if (windMin && !isNaN(windMin)) {
-      satisfiedConditions.windSpeed = parseFloat(row[config.get('col-wind-curr')]) >= parseFloat(windMin);
-    }
-
-    // Check if all conditions are satisfied
-    const activate = Utils.allObjectPropertiesTrue(satisfiedConditions);
-
-    // Switch Status
-    if (lineItemId) {
-      dv360.switchLIStatus(advertiserId, lineItemId, activate);
-    }
-    else if (insertionOrderId) {
-      dv360.switchIOStatus(advertiserId, insertionOrderId, activate)
-    }
-
-    // Update status in spreadsheet
-    row[config.get('col-status')] = activate ? 'Active' : 'Paused';
-
-    // Set last update timestamp
-    row[config.get('col-last-update')] = new Date().toISOString();
-
-    // Write back to Sheet
-    if (!sheetsApi.write([row], configSpreadsheetName + '!A' + (i + 1))) {
+    // Save weather conditions back to Sheet
+    if (!sheetsApi.write([row], configSpreadsheetName + '!A' + iPlus1)) {
       Logger.log('An error occurred, retrying in 30s');
       Utilities.sleep(30000);
-
-      // Decrement i so that it ends up the same in the next for-loop iteration
+      
+      // Decrement `i` so that it ends up the same in the next for-loop iteration
       i--;
     }
+    
+    // Process activation formula
+    const formulaIdx = config.getHeaderIndex('col-formula', true);
+    sheetsApi.forceFormulasEval(iPlus1, formulaIdx);
+    const activate = sheetsApi.getOne(iPlus1, formulaIdx);
+    
+    // Switch Status according to the activation formula value
+    if (!isNaN(lineItemId) && lineItemId > 0) {
+      dv360.switchLIStatus(advertiserId, lineItemId, activate);
+    } else if (!isNaN(insertionOrderId) && insertionOrderId > 0) {
+      dv360.switchIOStatus(advertiserId, insertionOrderId, activate);
+    }
+    
+    // +TODO: Write logs!
   }
 
   Logger.log('[END] monitorWeatherAndSyncWithDV360');

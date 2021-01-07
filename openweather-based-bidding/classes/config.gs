@@ -58,21 +58,36 @@ class Config {
       'sheet-name': '',
 
       // Column mappings
-      'col-line-item-id': 0,
-      'col-insertion-order-id': 1,
-      'col-advertiser-id': 2,
-      'col-lat': 3,
-      'col-lon': 4,
-      'col-temp-min': 5,
-      'col-temp-max': 6,
-      'col-precip': 7,
-      'col-wind-min': 8,
-      'col-temp-curr': 9,
-      'col-precip-curr': 10,
-      'col-wind-curr': 11,
-      'col-status': 12,
-      'col-last-update': 13
+      'col-line-item-id':       'Line Item Id',
+      'col-insertion-order-id': 'Insertion Order Id',
+      'col-advertiser-id':      'Advertiser ID',
+      'col-lat':                'Latitude',
+      'col-lon':                'Longitude',
+      'col-formula':            'Activation Formula',
+
+      // Spreadsheet headers
+      'headers': [],
     };
+  }
+
+  /**
+   * Set headers array for further processing
+   *
+   * @param headers Headers array
+   */
+  setHeaders(headers) {
+    this.config.headers = headers;
+  }
+
+  /**
+   * Returns the index of the header entity
+   * 
+   * @param idx Header notation (from `this.config`) we are looking for
+   * @return {integer} Index, if not exists then -1.
+   */
+  getHeaderIndex(idx, plusOne) {
+    idx = this.config.headers.indexOf(this.config[idx]);
+    return plusOne ? 1+idx : idx;
   }
 
   /**
@@ -84,4 +99,9 @@ class Config {
   get(name) {
     return this.config.hasOwnProperty(name) ? this.config[name] : null;
   }
+}
+
+// For tests
+if (typeof module !== 'undefined') {
+  module.exports = Config;
 }

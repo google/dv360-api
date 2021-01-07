@@ -29,17 +29,23 @@ class OpenWeather {
     }
 
     this.apiKey = apiKey;
+    this.cache = {};
   }
 
   /**
-   * Get current and forecast weather data based on geo location
+   * Get weather JSON from API based on geo location
    *
    * @param {number} lat
    * @param {number} lon
    *
    * @returns {Object}
    */
-  getCurrent(lat, lon) {
+  getAll(lat, lon) {
+    const cacheKey = `${lat}-${lon}`;
+    if (cacheKey in this.cache) {
+      return this.cache[cacheKey];
+    }
+
     const params = {
       lat: lat,
       lon: lon,
@@ -52,7 +58,21 @@ class OpenWeather {
       + Utils.encodeParameters(params);
     const res = UrlFetchApp.fetch(url);
 
-    return JSON.parse(res.getContentText()).current;
+    this.cache[cacheKey] = JSON.parse(res.getContentText());
+
+    return this.cache[cacheKey];
+  }
+
+  /**
+   * Get current and forecast weather data based on geo location
+   *
+   * @param {number} lat
+   * @param {number} lon
+   *
+   * @returns {Object}
+   */
+  getCurrent(lat, lon) {
+    return this.getAll(lat, lon).current;
   }
 
   /**
