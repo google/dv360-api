@@ -56,6 +56,7 @@ class SheetsApi {
 
       return true;
     } catch (e) {
+      Logger.log(e);
       return false;
     }
   }

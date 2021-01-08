@@ -64,6 +64,7 @@ class Config {
       'col-lat':                'Latitude',
       'col-lon':                'Longitude',
       'col-formula':            'Activation Formula',
+      'col-last-updated':       'Last Updated',
 
       // Spreadsheet headers
       'headers': [],

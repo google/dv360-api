@@ -31,7 +31,7 @@ test('encodeParameters', () => {
 });
 
 test('getValueFromJSON', () => {
-    const json = {
+    let json = {
         'foo': [
             {
                 'foo1': 'bar1'
@@ -56,6 +56,26 @@ test('getValueFromJSON', () => {
     expect(
         Utils.getValueFromJSON('bar.bar1', json)
     ).toBe('foo1');
+
+    json = {
+        'daily': [
+            {
+                'weather': {
+                    'id': 123
+                }
+            },
+            {
+                'foo2': 'bar2'
+            },
+        ], 
+        'bar': {
+            'bar1': 'foo1',
+        }
+    };
+
+    expect(
+        Utils.getValueFromJSON('daily.0.weather.id', json)
+    ).toBe(123);
 });
 
 test('getApiHeaders', () => {
