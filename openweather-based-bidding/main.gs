@@ -23,8 +23,11 @@ const sheetsApi = new SheetsApi(configSpreadsheetId);
 /**
  * Checks the weather conditions from the Open Weather API and adjusts the
  * DV360 entities status (e.g. IO switched on/off) with DV360 API.
+ * 
+ * @param {bool} onlyCheckAPI Set to true if you want only check API (no DV360 sync)
+ * 
  */
-function monitorWeatherAndSyncWithDV360() {
+function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
   Logger.log('[START] monitorLineItemChangesAndSyncWithDV360');
 
   // Get items from Sheet
@@ -45,6 +48,19 @@ function monitorWeatherAndSyncWithDV360() {
     const row = rows[i];
     const iPlus1 = i + 1;
 
+    // Check if we already processed this item
+    const currentDateTime = new Date();
+    const lastUpdated = new Date(
+      row[ config.getHeaderIndex('col-last-updated') ]
+    );
+    
+    const diff = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
+    const howOften = parseInt(config.get('how-often-to-check-in-hours'));
+    if ( !onlyCheckAPI && howOften && diff < howOften) {
+      Logger.log(`Row #${i} was already processed ${diff}h ago, skipping`);
+      continue;
+    }
+
     const lineItemId = parseInt(row[config.getHeaderIndex('col-line-item-id')]),
           insertionOrderId = parseInt(
             row[config.getHeaderIndex('col-insertion-order-id')]
@@ -64,7 +80,9 @@ function monitorWeatherAndSyncWithDV360() {
         .getValueFromJSON(apiHeader, allWeather);
     }
 
-    row[ config.getHeaderIndex('col-last-updated') ] = new Date().toISOString();
+    if (! onlyCheckAPI) {
+      row[config.getHeaderIndex('col-last-updated')] = currentDateTime.toISOString();
+    }
 
     // Save weather conditions back to Sheet
     if (!sheetsApi.write([row], configSpreadsheetName + '!A' + iPlus1)) {
@@ -73,6 +91,8 @@ function monitorWeatherAndSyncWithDV360() {
       
       // Decrement `i` so that it ends up the same in the next for-loop iteration
       i--;
+
+      continue;
     }
     
     // Process activation formula
@@ -80,26 +100,38 @@ function monitorWeatherAndSyncWithDV360() {
     sheetsApi.forceFormulasEval(iPlus1, formulaIdx);
     const activate = sheetsApi.getOne(iPlus1, formulaIdx);
     
-    try {
-      // Switch Status according to the activation formula value
-      if (!isNaN(lineItemId) && lineItemId > 0) {
-        dv360.switchLIStatus(advertiserId, lineItemId, activate);
-      } else if (!isNaN(insertionOrderId) && insertionOrderId > 0) {
-        dv360.switchIOStatus(advertiserId, insertionOrderId, activate);
+    if (! onlyCheckAPI) {
+      try {
+        // Switch Status according to the activation formula value
+        if (!isNaN(lineItemId) && lineItemId > 0) {
+          dv360.switchLIStatus(advertiserId, lineItemId, activate);
+        } else if (!isNaN(insertionOrderId) && insertionOrderId > 0) {
+          dv360.switchIOStatus(advertiserId, insertionOrderId, activate);
+        }
+      } catch (e) {
+        Logger.log('(2) An error occurred, retrying in 30s');
+        Utilities.sleep(30000);
+        
+        // Decrement `i` so that it ends up the same in the next for-loop iteration
+        i--;
+
+        continue;
       }
-    } catch (e) {
-      Logger.log('(2) An error occurred, retrying in 30s');
-      Utilities.sleep(30000);
-      
-      // Decrement `i` so that it ends up the same in the next for-loop iteration
-      i--;
+
+      // Logging of the successful processing
+      row[ config.getHeaderIndex('col-formula') ] = activate;
+      row.push('[ROW DATA]');
+      Logger.log(row.join(','));
     }
-    
-    // Logging
-    row[ config.getHeaderIndex('col-formula') ] = activate;
-    row.push('[ROW DATA]');
-    Logger.log(row.join(','));
   }
 
   Logger.log('[END] monitorWeatherAndSyncWithDV360');
+}
+
+/**
+ * Wrapper function to be called from the spreadsheet menu.
+ * Triggers the main function but with the boolean param set to true.
+ */
+function checkWeather() {
+  monitorWeatherAndSyncWithDV360(true);
 }

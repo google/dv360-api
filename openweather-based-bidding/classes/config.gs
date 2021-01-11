@@ -68,6 +68,14 @@ class Config {
 
       // Spreadsheet headers
       'headers': [],
+
+      /**
+       * *Optional*, how often do you want to check data from the API
+       * and switch the marketing entity (IO or LI). By default this is
+       * 12 hours (two times per day). Leave empty if you don't want to
+       * check this option.
+       */
+      'how-often-to-check-in-hours': 12,
     };
   }
 

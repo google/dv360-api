@@ -24,6 +24,7 @@ function onOpen(e) {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('Weather Based Marketing')
     .addItem('Check weather and sync DV360', 'monitorWeatherAndSyncWithDV360')
+    .addItem('Only check weather', 'checkWeather')
     .addSeparator()
     .addItem('Create a test config', 'createExampleTable')
     .addToUi();
