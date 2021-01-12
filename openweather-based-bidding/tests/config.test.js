@@ -39,3 +39,19 @@ test('headerOperations', () => {
     expect(config.getHeaderIndex('col-line-item-id')).toBe(0);
     expect(config.getHeaderIndex('col-lon')).toBe(4);
 });
+
+test('getApiHeaders', () => {
+    const config = new Config();
+    
+    const headers = [
+        'no api header 1',
+        'api:header1',
+        'no api header 2',
+        'api:header2'
+    ];
+
+    config.setHeaders(headers);
+    expect(config.getApiHeaders()).toStrictEqual(
+        {'header1': 1, 'header2': 3}
+    );
+});

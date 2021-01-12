@@ -24,7 +24,7 @@ class OpenWeather {
    * @param {string} apiKey Needed for Open Weather API calls
    */
   constructor(apiKey) {
-    if (! apiKey) {
+    if (!apiKey) {
       throw 'OpenWeather API key cannot be empty. Please edit "config.gs"';
     }
 
@@ -40,7 +40,7 @@ class OpenWeather {
    *
    * @returns {Object}
    */
-  getAll(lat, lon) {
+  getCurrentAndPredicted(lat, lon) {
     const cacheKey = `${lat}-${lon}`;
     if (cacheKey in this.cache) {
       return this.cache[cacheKey];
@@ -72,7 +72,7 @@ class OpenWeather {
    * @returns {Object}
    */
   getCurrent(lat, lon) {
-    return this.getAll(lat, lon).current;
+    return this.getCurrentAndPredicted(lat, lon).current;
   }
 
   /**

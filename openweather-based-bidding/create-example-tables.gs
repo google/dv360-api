@@ -37,7 +37,7 @@ function onOpen(e) {
 function createExampleTable() {
   const spreadsheet = SpreadsheetApp.openById(configSpreadsheetId);
   let sheet = spreadsheet.getSheetByName(configSpreadsheetName);
-  if (! sheet) {
+  if (!sheet) {
     sheet = spreadsheet.insertSheet(configSpreadsheetName);
   } else {
     const msg = `ERROR: A sheet with the name "${configSpreadsheetName}" already exists.`

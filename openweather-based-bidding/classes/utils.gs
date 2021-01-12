@@ -74,25 +74,6 @@ class Utils {
 
     return val;
   }
-
-  /**
-   * Get api related headers (those which are in the form "api:<entity1>.<entity2>")
-   *
-   * @param {array} headers All headers from the spreadsheet
-   * @returns {Object} List of the api related headers in the format {'api:<entity1>.<entity2>': <column number>}
-   */
-  static getApiHeaders(headers, ext = 'api:') {
-    let i = 0;
-    const output = {};
-    for (const header of headers) {
-      if (header.startsWith(ext)) {
-        output[ header.substring(ext.length) ] = i;
-      }
-
-      i++;
-    }
-    return output;
-  }
 }
 
 // For tests

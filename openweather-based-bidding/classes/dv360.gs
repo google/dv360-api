@@ -24,7 +24,7 @@ class DV360 {
    * @param {string} authToken A token needed to connect to DV360 API
    */
   constructor(authToken) {
-    if (! authToken) {
+    if (!authToken) {
       throw 'authToken cannot be empty';
     }
 

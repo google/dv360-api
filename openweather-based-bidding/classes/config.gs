@@ -70,12 +70,14 @@ class Config {
       'headers': [],
 
       /**
-       * *Optional*, how often do you want to check data from the API
-       * and switch the marketing entity (IO or LI). By default this is
-       * 12 hours (two times per day). Leave empty if you don't want to
-       * check this option.
+       * *Optional*
+       * How often do you want to check and update?
+       * If set to 0, checks and updates will run
+       * each time the script is triggered.
+       * You can use this feature when running into issues
+       * with execution limits.
        */
-      'how-often-to-check-in-hours': 12,
+      'hours-between-updates': 0,
     };
   }
 
@@ -91,12 +93,42 @@ class Config {
   /**
    * Returns the index of the header entity
    * 
-   * @param idx Header notation (from `this.config`) we are looking for
+   * @param {string} name Header notation (from `this.config`) we are looking for
+   * @param {integer} indexShift Shift returning value by adding this number (e.g. for non-Zero based array)
    * @return {integer} Index, if not exists then -1.
    */
-  getHeaderIndex(idx, plusOne) {
-    idx = this.config.headers.indexOf(this.config[idx]);
-    return plusOne ? 1+idx : idx;
+  getHeaderIndex(name, indexShift) {
+    const idx = this.config.headers.indexOf(this.config[name]);
+    return indexShift ? idx+indexShift : idx;
+  }
+
+  /**
+   * Get headers that start with a specified prefix
+   *
+   * @param {string} prefix Prefix
+   * @returns {Object} List of the headers in the format {'<header wo/prefix>': <column number>}
+   */
+  getHeadersWithPrefix(prefix) {
+    let i = 0;
+    const output = {};
+    for (const header of this.config.headers) {
+      if (header.startsWith(prefix)) {
+        output[ header.substring(prefix.length) ] = i;
+      }
+
+      i++;
+    }
+
+    return output;
+  }
+
+  /**
+   * Get api related headers (those which are in the form "api:<entity1>.<entity2>")
+   *
+   * @returns {Object} List of the api related headers in the format {'<entity1>.<entity2>': <column number>}
+   */
+  getApiHeaders() {
+    return this.getHeadersWithPrefix('api:');
   }
 
   /**

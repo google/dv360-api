@@ -85,8 +85,8 @@ class SheetsApi {
    *
    * @return {Object}
    */
-  getOne(row, col) {
-    if (! this.sheetObj) {
+  getCellValue(row, col) {
+    if (!this.sheetObj) {
       this.getSheetObject();
     }
 
@@ -109,7 +109,7 @@ class SheetsApi {
         + (name || configSpreadsheetName);
     }
 
-    if (! name) {
+    if (!name) {
       this.sheetObj = sheet;
     }
 

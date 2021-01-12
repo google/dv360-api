@@ -60,7 +60,7 @@ class Auth {
    * @returns {string} OAuth Token
    */
   getAuthToken() {
-    if (! this.serviceAccount || ! ('private_key' in this.serviceAccount)) {
+    if (!this.serviceAccount || !('private_key' in this.serviceAccount)) {
       return ScriptApp.getOAuthToken();
     }
 

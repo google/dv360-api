@@ -24,7 +24,7 @@ const sheetsApi = new SheetsApi(configSpreadsheetId);
  * Checks the weather conditions from the Open Weather API and adjusts the
  * DV360 entities status (e.g. IO switched on/off) with DV360 API.
  * 
- * @param {bool} onlyCheckAPI Set to true if you want only check API (no DV360 sync)
+ * @param {bool} onlyCheckAPI Set to true if you want to only check the API (no DV360 sync)
  * 
  */
 function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
@@ -34,8 +34,8 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
   const rows = sheetsApi.get(configSpreadsheetName);
 
   // Process sheet headers
-  const apiHeaders = Utils.getApiHeaders(rows[0]);
   config.setHeaders(rows[0]);
+  const apiHeaders = config.getApiHeaders();
 
   // Configure all wrapper classes
   const auth     = new Auth(config.get('service-account'));
@@ -54,10 +54,10 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
       row[ config.getHeaderIndex('col-last-updated') ]
     );
     
-    const diff = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
-    const howOften = parseInt(config.get('how-often-to-check-in-hours'));
-    if ( !onlyCheckAPI && howOften && diff < howOften) {
-      Logger.log(`Row #${i} was already processed ${diff}h ago, skipping`);
+    const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
+    const hoursBetweenUpdates = parseInt(config.get('hours-between-updates'));
+    if (!onlyCheckAPI && hoursBetweenUpdates && diffHours < hoursBetweenUpdates) {
+      Logger.log(`Row #${i} was already processed ${diffHours}h ago, skipping`);
       continue;
     }
 
@@ -72,21 +72,21 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
           lon = parseFloat(row[config.getHeaderIndex('col-lon')]);
 
     // Get weather conditions
-    const allWeather = weather.getAll(lat, lon);
+    const allWeather = weather.getCurrentAndPredicted(lat, lon);
 
-    // Extract all weather variables and write their values to the spreadsheet
+    // Extract all weather variables
     for (apiHeader in apiHeaders) {
       row[ apiHeaders[apiHeader] ] = Utils
         .getValueFromJSON(apiHeader, allWeather);
     }
 
-    if (! onlyCheckAPI) {
+    if (!onlyCheckAPI) {
       row[config.getHeaderIndex('col-last-updated')] = currentDateTime.toISOString();
     }
 
     // Save weather conditions back to Sheet
     if (!sheetsApi.write([row], configSpreadsheetName + '!A' + iPlus1)) {
-      Logger.log('(1) An error occurred, retrying in 30s');
+      Logger.log('Error updating Sheet, retrying in 30s');
       Utilities.sleep(30000);
       
       // Decrement `i` so that it ends up the same in the next for-loop iteration
@@ -96,11 +96,11 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
     }
     
     // Process activation formula
-    const formulaIdx = config.getHeaderIndex('col-formula', true);
+    const formulaIdx = config.getHeaderIndex('col-formula', 1);
     sheetsApi.forceFormulasEval(iPlus1, formulaIdx);
-    const activate = sheetsApi.getOne(iPlus1, formulaIdx);
+    const activate = sheetsApi.getCellValue(iPlus1, formulaIdx);
     
-    if (! onlyCheckAPI) {
+    if (!onlyCheckAPI) {
       try {
         // Switch Status according to the activation formula value
         if (!isNaN(lineItemId) && lineItemId > 0) {
@@ -109,7 +109,7 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
           dv360.switchIOStatus(advertiserId, insertionOrderId, activate);
         }
       } catch (e) {
-        Logger.log('(2) An error occurred, retrying in 30s');
+        Logger.log('Error updating DV360 API, retrying in 30s');
         Utilities.sleep(30000);
         
         // Decrement `i` so that it ends up the same in the next for-loop iteration
@@ -118,7 +118,8 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
         continue;
       }
 
-      // Logging of the successful processing
+      // Logging of the successful processing (in CSV format for the further analysis).
+      // `[ROW DATA]` is just a label, so the logs can be filtered out by it.
       row[ config.getHeaderIndex('col-formula') ] = activate;
       row.push('[ROW DATA]');
       Logger.log(row.join(','));
