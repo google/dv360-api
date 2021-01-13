@@ -54,6 +54,10 @@ class Utils {
         val       = null;
     
     for (const part of path.split('.')) {
+      if (part.startsWith('!')) {
+        return Utils.getAgregatedValueFromJSON(part.substring(1), tmpJson);
+      }
+
       let tmpVal;
       const intVal = parseInt(part);
       if (intVal && intVal in tmpJson) {
@@ -73,6 +77,26 @@ class Utils {
     }
 
     return val;
+  }
+
+  /**
+   * Get aggregated value (e.g. MAX, MIN, etc.) from JSON entry values.
+   *
+   * @param {string} aggFunction Aggregation function (now only MIN and MAX function are supported)
+   * @param {JSON} json JSON or JavaScript Object
+   * @returns {number} Agregated value from JSON
+   */
+  static getAgregatedValueFromJSON(aggFunction, json) {
+    switch (aggFunction.toLowerCase()) {
+      case 'min':
+        return Math.min.apply(Math, Object.values(json));
+        
+      case 'max':
+        return Math.max.apply(Math, Object.values(json));
+
+      default:
+        throw `Aggregation function "${aggFunction}" is not supported`;
+    }
   }
 }
 
