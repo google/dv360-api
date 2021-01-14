@@ -94,12 +94,10 @@ class Config {
    * Returns the index of the header entity
    * 
    * @param {string} name Header notation (from `this.config`) we are looking for
-   * @param {integer} indexShift Shift returning value by adding this number (e.g. for non-Zero based array)
    * @return {integer} Index, if not exists then -1.
    */
-  getHeaderIndex(name, indexShift) {
-    const idx = this.config.headers.indexOf(this.config[name]);
-    return indexShift ? idx+indexShift : idx;
+  getHeaderIndex(name) {
+    return this.config.headers.indexOf(this.config[name]);
   }
 
   /**

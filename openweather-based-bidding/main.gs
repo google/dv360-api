@@ -96,7 +96,7 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
     }
     
     // Process activation formula
-    const formulaIdx = config.getHeaderIndex('col-formula', 1);
+    const formulaIdx = config.getHeaderIndex('col-formula') + 1;
     sheetsApi.forceFormulasEval(iPlus1, formulaIdx);
     const activate = sheetsApi.getCellValue(iPlus1, formulaIdx);
     
