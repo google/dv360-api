@@ -48,7 +48,7 @@ class Utils {
    * @param {!Object} obj
    * @return {boolean}
    */
-  function allObjectPropertiesTrue(obj) {
+  static allObjectPropertiesTrue(obj) {
     return Object.keys(obj).every((k) => obj[k]);
   }
 }
