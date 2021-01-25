@@ -30,6 +30,12 @@ const sheetsApi = new SheetsApi(configSpreadsheetId);
 function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
   Logger.log('[START] monitorLineItemChangesAndSyncWithDV360');
 
+  // If the function is triggered by the standard trigger, it receives
+  // the trigger info object as a first param.
+  if (typeof onlyCheckAPI !== "boolean") {
+    onlyCheckAPI = false;
+  }
+
   // Get items from Sheet
   const rows = sheetsApi.get(configSpreadsheetName);
 
