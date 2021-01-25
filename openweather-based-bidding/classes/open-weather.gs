@@ -25,7 +25,8 @@ class OpenWeather {
    */
   constructor(apiKey) {
     if (!apiKey) {
-      throw 'OpenWeather API key cannot be empty. Please edit "config.gs"';
+      throw 'OpenWeather API key cannot be empty. ' 
+        + 'Please put your key to the "open-weather-api-key" config section.';
     }
 
     this.apiKey = apiKey;

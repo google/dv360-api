@@ -17,7 +17,8 @@
 const config = new Config();
 const configSpreadsheetId = config.get('spreadsheet-id')
   || SpreadsheetApp.getActiveSpreadsheet().getId();
-const configSpreadsheetName = config.get('sheet-name') || "TEST";
+const configSpreadsheetName = config.get('sheet-name') 
+  || "Weather Trigger";
 const sheetsApi = new SheetsApi(configSpreadsheetId);
 
 /**

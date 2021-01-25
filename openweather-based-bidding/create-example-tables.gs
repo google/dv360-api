@@ -49,18 +49,12 @@ function createExampleTable() {
   }
 
   // Populate values
-  sheet.getRange("A1:N2").setValues(getExampleTableValues());
+  sheet.getRange("A1:N3").setValues(getExampleTableValues());
 
   // Add colors
   sheet.getRange("A1:N1")
     .setBackgroundRGB(102, 204, 255)
     .setFontWeight("bold");
-
-  // Set rain/snow column to only accept TRUE/FALSE
-  const cell = sheet.getRange('H2:H');
-  const rule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['TRUE', 'FALSE'], true).setAllowInvalid(false).build();
-  cell.setDataValidation(rule);
 
   SpreadsheetApp.getUi().alert("Done");
 }
@@ -73,36 +67,52 @@ function createExampleTable() {
 function getExampleTableValues() {
   return [
     [
+      'City',
+      'Weather condition',
+      'Activation Formula',
       'Line Item Id',
       'Insertion Order Id',
       'Advertiser ID',
       'Latitude',
       'Longitude',
-      'Min. Temperature',
-      'Max. Temparature',
-      'Only when Raining/Snowing',
-      'Min. Windspeed',
-      'Current Temperature',
-      'Current Raining/Snowing',
-      'Current Windspeed',
-      'DV360 Status',
       'Last Updated',
+      'api:daily.0.clouds',
+      'api:daily.0.rain',
+      'api:daily.0.snow',
+      'api:daily.0.feels_like.!MIN',
+      'api:daily.0.feels_like.!MAX',
     ],
     [
-      '<Integer ID>',
-      '<Integer ID>',
-      '<Integer ID>',
-      '<Float Latitude>',
-      '<Float Longitude>',
-      '<Float>',
-      '<Float>',
-      'FALSE',
-      '<Float>',
-      'Do not edit',
-      'Do not edit',
-      'Do not edit',
-      'Do not edit',
-      'Do not edit',
+      'Hamburg',
+      'Rain or clouds',
+      '=OR(J2>=50, K2>=10)',
+      '<Integer: Line Item ID>',
+      '<Integer: Insertion Order Id>',
+      '<Integer: Advertiser ID>',
+      '53.55',
+      '10',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+    ],
+    [
+      'Hamburg',
+      'Feels cold',
+      '=N3<0',
+      '<Integer: Line Item ID>',
+      '<Integer: Insertion Order Id>',
+      '<Integer: Advertiser ID>',
+      '53.55',
+      '10',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
     ],
   ];
 }

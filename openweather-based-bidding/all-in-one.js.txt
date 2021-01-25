@@ -1,0 +1,984 @@
+
+/* START File: ./create-example-tables.gs */
+/**
+    Copyright 2020 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ */
+
+/**
+ * This is a "Simple Trigger" (https://developers.google.com/apps-script/guides/triggers#onopene).
+ * It adds a custom menu item into the spreadsheet menu.
+ *
+ * @param {Event} e The onOpen event.
+ */
+function onOpen(e) {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('Weather Based Marketing')
+    .addItem('Check weather and sync DV360', 'monitorWeatherAndSyncWithDV360')
+    .addItem('Only check weather', 'checkWeather')
+    .addSeparator()
+    .addItem('Create a test config', 'createExampleTable')
+    .addToUi();
+}
+
+/**
+ * Creates a sheet with the example table.
+ * The table is a main configuration source for the AppsScript code.
+ */
+function createExampleTable() {
+  const spreadsheet = SpreadsheetApp.openById(configSpreadsheetId);
+  let sheet = spreadsheet.getSheetByName(configSpreadsheetName);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(configSpreadsheetName);
+  } else {
+    const msg = `ERROR: A sheet with the name "${configSpreadsheetName}" already exists.`
+        + ' Please rename or delete it.';
+
+    SpreadsheetApp.getUi().alert(msg);
+    Logger.log(msg);
+    return;
+  }
+
+  // Populate values
+  sheet.getRange("A1:N3").setValues(getExampleTableValues());
+
+  // Add colors
+  sheet.getRange("A1:N1")
+    .setBackgroundRGB(102, 204, 255)
+    .setFontWeight("bold");
+
+  SpreadsheetApp.getUi().alert("Done");
+}
+
+/**
+ * Returns a default configuration table structure.
+ *
+ * @return {array} The configuration structure.
+ */
+function getExampleTableValues() {
+  return [
+    [
+      'City',
+      'Weather condition',
+      'Activation Formula',
+      'Line Item Id',
+      'Insertion Order Id',
+      'Advertiser ID',
+      'Latitude',
+      'Longitude',
+      'Last Updated',
+      'api:daily.0.clouds',
+      'api:daily.0.rain',
+      'api:daily.0.snow',
+      'api:daily.0.feels_like.!MIN',
+      'api:daily.0.feels_like.!MAX',
+    ],
+    [
+      'Hamburg',
+      'Rain or clouds',
+      '=OR(J2>=50, K2>=10)',
+      '<Integer: Line Item ID>',
+      '<Integer: Insertion Order Id>',
+      '<Integer: Advertiser ID>',
+      '53.55',
+      '10',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+    ],
+    [
+      'Hamburg',
+      'Feels cold',
+      '=N3<0',
+      '<Integer: Line Item ID>',
+      '<Integer: Insertion Order Id>',
+      '<Integer: Advertiser ID>',
+      '53.55',
+      '10',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+    ],
+  ];
+}
+/* END File: ./create-example-tables.gs */
+/* START File: ./classes/dv360.gs */
+/**
+    Copyright 2020 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ */
+
+/**
+ * DV360 API Wrapper class. Implements DV360 API calls.
+ */
+class DV360 {
+  /**
+   * Set the DV360 wrapper configuration
+   *
+   * @param {string} authToken A token needed to connect to DV360 API
+   */
+  constructor(authToken) {
+    if (!authToken) {
+      throw 'authToken cannot be empty';
+    }
+
+    this.authToken = authToken;
+
+    /**
+     * DV360 Write API Endpoint Prefix
+     * See more: https://developers.google.com/display-video/api/reference/rest
+     */
+    this.dv360EndPointPrefix = 'https://displayvideo.googleapis.com/v1';
+  }
+
+  /**
+   * Make an HTTPS API request using specified auth method (see 'Auth' class)
+   * @param {string} url - API endpoint to be requested
+   * @param {string} method - HTTP(S) method, e.g. GET, PATCH, etc.
+   * @param {string} payload - What should be updated
+   * @returns {JSON} Result of the operation
+   */
+  fetchUrl(url, method, payload) {
+    const params = {
+      muteHttpExceptions: true,
+      method: method || 'get',
+      headers: {
+        'Authorization': 'Bearer ' + this.authToken,
+        'Accept': '*/*'
+      }
+    };
+
+    if (payload) {
+      params.headers['Content-type'] = 'application/json';
+      params.payload = JSON.stringify(payload);
+    }
+
+    const res = UrlFetchApp.fetch(url, params);
+    if(200 != res.getResponseCode() && 204 != res.getResponseCode()) {
+      Logger.log('HTTP code: ' + res.getResponseCode());
+      Logger.log('API error: ' + res.getContentText());
+      Logger.log('URL: ' + url);
+      Logger.log('params: ' + JSON.stringify(params, 0, 2));
+      throw new Error(res.getContentText());
+    }
+
+    return res.getContentText() ? JSON.parse(res.getContentText()) : {};
+  }
+
+  /**
+   * Returns a correct DV360 API status string
+   *
+   * @param {bool} turnOn
+   * @return {string} Status string
+   */
+  apiStatus(turnOn) {
+    return turnOn ? 'ENTITY_STATUS_ACTIVE' : 'ENTITY_STATUS_PAUSED';
+  }
+
+  /**
+   * Change DV360 entity status (Active/Paused) for the specified ID.
+   * See more: https://developers.google.com/display-video/api/reference/rest/v1/advertisers.lineItems
+   * See more: https://developers.google.com/display-video/api/reference/rest/v1/advertisers.insertionOrders
+   * @param {integer} advertiserId - DV360 Advertiser ID
+   * @param {integer} entityId - DV360 Line Item ID
+   * @param {bool} turnOn - "true" - activate the entity, "false" - deactivate it
+   */
+  switchEntityStatus(advertiserId, entityId, turnOn, entity) {
+    const newStatus = this.apiStatus(turnOn);
+    const updateMask = {
+      'entityStatus': newStatus
+    };
+
+    const url = Utilities.formatString(
+      '%s/advertisers/%s/%s/%s?updateMask=entityStatus',
+      this.dv360EndPointPrefix,
+      advertiserId,
+      entity,
+      entityId
+    );
+
+    this.fetchUrl(url, 'patch', updateMask);
+
+    Logger.log(
+      `* [DV360:switch ${entity}]: DONE, ID: ${entityId} new status ${newStatus}`
+    );
+  }
+
+  /**
+   * Change Insertion Order status (Active/Paused) for the specified IO ID.
+   *
+   * @param {integer} advertiserId - DV360 Advertiser ID
+   * @param {integer} insertionOrderId - DV360 Line Item ID
+   * @param {bool} turnOn - "true" - activate IO, "false" - deactivate IO
+   */
+  switchIOStatus(advertiserId, insertionOrderId, turnOn) {
+    const newStatus = this.switchEntityStatus(
+      advertiserId, insertionOrderId, turnOn, 'insertionOrders'
+    );
+  }
+
+  /**
+   * Change Line Item status (Active/Paused) for the specified LI ID.
+   *
+   * @param {integer} advertiserId - DV360 Advertiser ID
+   * @param {integer} lineItemId - DV360 Line Item ID
+   * @param {bool} turnOn - "true" - activate IO, "false" - deactivate IO
+   */
+  switchLIStatus(advertiserId, lineItemId, turnOn) {
+    const newStatus = this.switchEntityStatus(
+      advertiserId, lineItemId, turnOn, 'lineItems'
+    );
+  }
+
+}
+/* END File: ./classes/dv360.gs */
+/* START File: ./classes/sheets.gs */
+/**
+    Copyright 2020 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ */
+
+/**
+ * Helper class to wrap calls to Sheets API.
+ * Sheets API Read/Write usually works faster then reading and writing from/to
+ * spreadsheet directly.
+ */
+class SheetsApi {
+  constructor(spreadsheetId) {
+    /** @type {string} */
+    this.spreadsheetId = spreadsheetId;
+
+    /** @type {null|Object} */
+    this.sheetObj = null;
+
+    /** @type {Object} */
+    this.defaultMode = {
+      'valueRenderOption': 'FORMULA',
+    };
+  }
+
+  /**
+   * Writes data to spreadsheet
+   *
+   * @param {!Array<!Array<string|number|boolean>>} rows Rows
+   * @param {string} range Range
+   *
+   * @return {boolean} True if successful
+   */
+  write(rows, range) {
+    const valueRange = Sheets_v4.newValueRange();
+    valueRange.values = rows;
+
+    const options = {
+      valueInputOption: "USER_ENTERED",
+    };
+
+    try {
+      Sheets_v4.Spreadsheets.Values
+        .update(valueRange, this.spreadsheetId, range, options);
+      SpreadsheetApp.flush();
+
+      return true;
+    } catch (e) {
+      Logger.log(e);
+      return false;
+    }
+  }
+
+  /**
+   * Fetches data from sheet
+   *
+   * @param {string} range A1-Range
+   * @param {string} renderMode Render mode, [more info](https://developers.google.com/sheets/api/reference/rest/v4/ValueRenderOption)
+   *
+   * @return {!Array<!Array<!Object>>}
+   */
+  get(range, renderMode) {
+    return Sheets_v4.Spreadsheets.Values.get(
+        this.spreadsheetId,
+        range,
+        renderMode || this.defaultMode
+      )['values'];
+  }
+
+  /**
+   * Fetches data from one cell from the sheet
+   *
+   * @param {string} row Row number
+   * @param {string} col Column number
+   *
+   * @return {Object}
+   */
+  getCellValue(row, col) {
+    if (!this.sheetObj) {
+      this.getSheetObject();
+    }
+
+    return this.sheetObj.getRange(row, col).getValues()[0][0];
+  }
+
+  /**
+   * Get a spreadsheet object to perform read/write operations.
+   * Check if specified spreadsheet settings are correct 
+   * and init default sheet object.s
+   * 
+   * @param name Optional. Sheet name.
+   * @return {Object}
+   */
+  getSheetObject(name) {
+    const sheet = SpreadsheetApp.openById(configSpreadsheetId)
+      .getSheetByName(name || configSpreadsheetName);
+    if (!sheet) {
+      throw 'Cannot find spreadsheet with the name: '
+        + (name || configSpreadsheetName);
+    }
+
+    if (!name) {
+      this.sheetObj = sheet;
+    }
+
+    return sheet;
+  }
+
+  /**
+   * Process sheet formulas (force them to be re-evaluated)
+   *
+   * @param {string} range A1-Range
+   */
+  forceFormulasEval(row, col) {
+    const formula = this.sheetObj.getRange(row,col).getFormula();
+
+    this.sheetObj.getRange(row, col).setFormula(''); 
+    SpreadsheetApp.flush();
+
+    this.sheetObj.getRange(row, col).setFormula(formula);
+    SpreadsheetApp.flush();
+  }
+}/* END File: ./classes/sheets.gs */
+/* START File: ./classes/config.gs */
+/**
+    Copyright 2020 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ */
+
+/**
+ * This class contains all the config variables in one place.
+ */
+class Config {
+  /**
+   * Init all the config variables
+   *
+   */
+  constructor() {
+    this.config = {
+      /** 
+       * *Mandatory* configuration param.
+       * First you need to get an OpenWeather API key (aka "appid"):
+       * https://openweathermap.org/appid
+       */
+      'open-weather-api-key': '',
+
+      /** 
+       * *Optional*, only if you want to use a service account.
+       * If you leave this parameter empty, apps script will use
+       * an active Google account under which you run the apps script. 
+       * For more see: https://cloud.google.com/iam/docs/service-accounts
+       */
+      'service-account': {},
+      
+      /**
+       * *Optional*, spreadsheet ID.
+       * Specify your configuration Spreadsheet ID or use a current Spreadsheet, e.g.:
+       * const configSpreadsheetId = "-1GGwYZP34HHejwrO19cK5r108nQr7FaYfg5YJOcw0jnch4";
+       * OR
+       * const configSpreadsheetId = SpreadsheetApp.getActiveSpreadsheet().getId();
+       */
+      'spreadsheet-id': '',
+
+      /**
+       * *Optional*, sheet (tab) name.
+       * Specify your sheet (tab) name with the IOs/LIs IDs,
+       * e.g. for testing we use "TEST", for production "PROD".
+       * For testing purposes we suggest to use a different DV360 campaign,
+       * so you can specify your test IDs in the "TEST" sheet.
+       */
+      'sheet-name': '',
+
+      // Column mappings
+      'col-line-item-id':       'Line Item Id',
+      'col-insertion-order-id': 'Insertion Order Id',
+      'col-advertiser-id':      'Advertiser ID',
+      'col-lat':                'Latitude',
+      'col-lon':                'Longitude',
+      'col-formula':            'Activation Formula',
+      'col-last-updated':       'Last Updated',
+
+      // Spreadsheet headers
+      'headers': [],
+
+      /**
+       * *Optional*
+       * How often do you want to check and update?
+       * If set to 0, checks and updates will run
+       * each time the script is triggered.
+       * You can use this feature when running into issues
+       * with execution limits.
+       */
+      'hours-between-updates': 0,
+    };
+  }
+
+  /**
+   * Set headers array for further processing
+   *
+   * @param headers Headers array
+   */
+  setHeaders(headers) {
+    this.config.headers = headers;
+  }
+
+  /**
+   * Returns the index of the header entity
+   * 
+   * @param {string} name Header notation (from `this.config`) we are looking for
+   * @return {integer} Index, if not exists then -1.
+   */
+  getHeaderIndex(name) {
+    return this.config.headers.indexOf(this.config[name]);
+  }
+
+  /**
+   * Get headers that start with a specified prefix
+   *
+   * @param {string} prefix Prefix
+   * @returns {Object} List of the headers in the format {'<header wo/prefix>': <column number>}
+   */
+  getHeadersWithPrefix(prefix) {
+    let i = 0;
+    const output = {};
+    for (const header of this.config.headers) {
+      if (header.startsWith(prefix)) {
+        output[ header.substring(prefix.length) ] = i;
+      }
+
+      i++;
+    }
+
+    return output;
+  }
+
+  /**
+   * Get api related headers (those which are in the form "api:<entity1>.<entity2>")
+   *
+   * @returns {Object} List of the api related headers in the format {'<entity1>.<entity2>': <column number>}
+   */
+  getApiHeaders() {
+    return this.getHeadersWithPrefix('api:');
+  }
+
+  /**
+   * Returns the config variable value by its name
+   *
+   * @param {string} name Config variable name
+   * @return {*} Variable value
+   */
+  get(name) {
+    return this.config.hasOwnProperty(name) ? this.config[name] : null;
+  }
+}
+
+// For tests
+if (typeof module !== 'undefined') {
+  module.exports = Config;
+}/* END File: ./classes/config.gs */
+/* START File: ./classes/auth.gs */
+/**
+    Copyright 2020 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ */
+
+
+/**
+ * This is a wrapper class for handling authentification to DV360 API.
+ * This class can be used to auth also to other Google APIs.
+ */
+class Auth {
+  /**
+   * Set the OAuth configuration.
+   * In order to authorise your DV360 API calls you can:
+   * 1. Use the same Google account as you open the spreadsheet.
+   *   If you chose this approach, you don't need to do pass account.
+   * 2. Use a service account.
+   * This is a service account in JSON format from your GCP project.
+   * How to get a service account credentials from GCP:
+   * https://cloud.google.com/iam/docs/service-accounts
+   *
+   * Service account credentials should be specified in the following JSON format:
+   * {
+   * "type": "this.serviceAccount",
+   * "project_id": "...",
+   * "private_key_id": "...",
+   * "private_key": "...",
+   * "client_email": "...@...gserviceaccount.com",
+   * "client_id": "...",
+   * "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+   * "token_uri": "https://oauth2.googleapis.com/token",
+   * "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+   * "client_x509_cert_url": "..."
+   * }
+   *
+   * @param {Object} account The service account or empty
+   *
+   */
+  constructor(account) {
+    this.serviceAccount = account;
+  }
+
+  /**
+   * Get Auth Token for OAuth authorisation for your service account.
+   * You need this token in order to authorise your DV360 API requests.
+   * See more: https://github.com/gsuitedevs/apps-script-oauth2/blob/master/README.md
+   * See more: https://developers.google.com/apps-script/reference/script/script-app#getOAuthToken()
+   *
+   * @returns {string} OAuth Token
+   */
+  getAuthToken() {
+    if (!this.serviceAccount || !('private_key' in this.serviceAccount)) {
+      return ScriptApp.getOAuthToken();
+    }
+
+    const service = OAuth2.createService("Service Account")
+        .setTokenUrl('https://accounts.google.com/o/oauth2/token')
+        .setPrivateKey(this.serviceAccount.private_key)
+        .setIssuer(this.serviceAccount.client_email)
+        .setSubject(this.serviceAccount.user_email)
+        .setPropertyStore(PropertiesService.getScriptProperties())
+        .setParam('access_type', 'offline')
+        .setScope("https://www.googleapis.com/auth/display-video");
+
+    service.reset();
+    return service.getAccessToken();
+  }
+}
+
+/* END File: ./classes/auth.gs */
+/* START File: ./classes/utils.gs */
+/**
+    Copyright 2020 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ */
+
+/**
+ * This class contains different utility functional
+ */
+class Utils {
+  /**
+   * Take an object and transform it to a URL safe parameter string
+   *
+   * @param {object} params
+   * @returns {string}
+   */
+  static encodeParameters(params) {
+    return Object.keys(params).map(function(key) {
+      return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+    }).join('&');
+  }
+
+  /**
+   * Get timestamp of [daysBack] days ago in microseconds
+   *
+   * @param {number} daysBack
+   * @returns {string}
+   */
+  static getPastTimestamp(daysBack) {
+    let daysAgoMillis = new Date().getTime() - daysBack * 24 * 60 * 60 * 1000;
+
+    return (Math.floor(daysAgoMillis / 1000)).toString();
+  }
+
+  /**
+   * Get JSON entry value for the provided path (similar to XPath in XML)
+   *
+   * @param {string} path Format "<entity>.<entity>.<array index>.<entity>"
+   * @param {JSON} json JSON or JavaScript Object
+   * @returns {*|null} Value from JSON or null if value does not exist
+   */
+  static getValueFromJSON(path, json) {
+    let tmpJson  = json, 
+        val       = null;
+    
+    for (const part of path.split('.')) {
+      if (part.startsWith('!')) {
+        return Utils.getAgregatedValueFromJSON(part.substring(1), tmpJson);
+      }
+
+      let tmpVal;
+      const intVal = parseInt(part);
+      if (intVal && intVal in tmpJson) {
+        tmpVal = tmpJson[intVal];
+      } else if (tmpJson.hasOwnProperty(part)) {
+        tmpVal = tmpJson[part];
+      } else {
+        break;
+      }
+      
+      const typeOf = typeof tmpVal;
+      if ('string' == typeOf || 'number' == typeOf) {
+        return tmpVal;
+      } else {
+        tmpJson = tmpVal;
+      }
+    }
+
+    return val;
+  }
+
+  /**
+   * Get aggregated value (e.g. MAX, MIN, etc.) from JSON entry values.
+   *
+   * @param {string} aggFunction Aggregation function (now only MIN and MAX function are supported)
+   * @param {JSON} json JSON or JavaScript Object
+   * @returns {number} Agregated value from JSON
+   */
+  static getAgregatedValueFromJSON(aggFunction, json) {
+    switch (aggFunction.toLowerCase()) {
+      case 'min':
+        return Math.min.apply(Math, Object.values(json));
+        
+      case 'max':
+        return Math.max.apply(Math, Object.values(json));
+
+      default:
+        throw `Aggregation function "${aggFunction}" is not supported`;
+    }
+  }
+}
+
+// For tests
+if (typeof module !== 'undefined') {
+  module.exports = Utils;
+}/* END File: ./classes/utils.gs */
+/* START File: ./classes/open-weather.gs */
+/**
+    Copyright 2020 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ */
+
+/**
+ * Helper class to wrap calls to OpenWeatherMap API
+ */
+class OpenWeather {
+  /**
+   * Constructor
+   *
+   * @param {string} apiKey Needed for Open Weather API calls
+   */
+  constructor(apiKey) {
+    if (!apiKey) {
+      throw 'OpenWeather API key cannot be empty. ' 
+        + 'Please put your key to the "open-weather-api-key" config section.';
+    }
+
+    this.apiKey = apiKey;
+    this.cache = {};
+  }
+
+  /**
+   * Get weather JSON from API based on geo location
+   *
+   * @param {number} lat
+   * @param {number} lon
+   *
+   * @returns {Object}
+   */
+  getCurrentAndPredicted(lat, lon) {
+    const cacheKey = `${lat}-${lon}`;
+    if (cacheKey in this.cache) {
+      return this.cache[cacheKey];
+    }
+
+    const params = {
+      lat: lat,
+      lon: lon,
+      exclude: "minutely,hourly",
+      units: "metric",
+      appid: this.apiKey
+    }
+
+    const url = "https://api.openweathermap.org/data/2.5/onecall?"
+      + Utils.encodeParameters(params);
+    const res = UrlFetchApp.fetch(url);
+
+    this.cache[cacheKey] = JSON.parse(res.getContentText());
+
+    return this.cache[cacheKey];
+  }
+
+  /**
+   * Get current and forecast weather data based on geo location
+   *
+   * @param {number} lat
+   * @param {number} lon
+   *
+   * @returns {Object}
+   */
+  getCurrent(lat, lon) {
+    return this.getCurrentAndPredicted(lat, lon).current;
+  }
+
+  /**
+   * Get historical weather data based on geo location
+   *
+   * @param {number} lat
+   * @param {number} lon
+   * @param {number} daysBack
+   *
+   * @returns {Object}
+   */
+  getHistorical(lat, lon, daysBack = 1) {
+    const params = {
+      lat: lat,
+      lon: lon,
+      dt: Utils.getPastTimestamp(daysBack),
+      units: "metric",
+      appid: this.apiKey
+    }
+
+    const url = "https://api.openweathermap.org/data/2.5/onecall/timemachine?"
+      + Utils.encodeParameters(params);
+    const res = UrlFetchApp.fetch(url);
+
+    return JSON.parse(res.getContentText());
+  }
+}
+/* END File: ./classes/open-weather.gs */
+/* START File: ./main.gs */
+/**
+    Copyright 2020 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ */
+
+const config = new Config();
+const configSpreadsheetId = config.get('spreadsheet-id')
+  || SpreadsheetApp.getActiveSpreadsheet().getId();
+const configSpreadsheetName = config.get('sheet-name') 
+  || "Weather Trigger";
+const sheetsApi = new SheetsApi(configSpreadsheetId);
+
+/**
+ * Checks the weather conditions from the Open Weather API and adjusts the
+ * DV360 entities status (e.g. IO switched on/off) with DV360 API.
+ * 
+ * @param {bool} onlyCheckAPI Set to true if you want to only check the API (no DV360 sync)
+ * 
+ */
+function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
+  Logger.log('[START] monitorLineItemChangesAndSyncWithDV360');
+
+  // If the function is triggered by the standard trigger, it receives
+  // the trigger info object as a first param.
+  if (typeof onlyCheckAPI !== "boolean") {
+    onlyCheckAPI = false;
+  }
+
+  // Get items from Sheet
+  const rows = sheetsApi.get(configSpreadsheetName);
+
+  // Process sheet headers
+  config.setHeaders(rows[0]);
+  const apiHeaders = config.getApiHeaders();
+
+  // Configure all wrapper classes
+  const auth     = new Auth(config.get('service-account'));
+  const dv360    = new DV360(auth.getAuthToken());
+  const weather  = new OpenWeather(config.get('open-weather-api-key'));
+
+  sheetsApi.getSheetObject();
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const iPlus1 = i + 1;
+
+    // Check if we already processed this item
+    const currentDateTime = new Date();
+    const lastUpdated = new Date(
+      row[ config.getHeaderIndex('col-last-updated') ]
+    );
+    
+    const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
+    const hoursBetweenUpdates = parseInt(config.get('hours-between-updates'));
+    if (!onlyCheckAPI && hoursBetweenUpdates && diffHours < hoursBetweenUpdates) {
+      Logger.log(`Row #${i} was already processed ${diffHours}h ago, skipping`);
+      continue;
+    }
+
+    const lineItemId = parseInt(row[config.getHeaderIndex('col-line-item-id')]),
+          insertionOrderId = parseInt(
+            row[config.getHeaderIndex('col-insertion-order-id')]
+          ),
+          advertiserId = parseInt(
+            row[config.getHeaderIndex('col-advertiser-id')]
+          ),
+          lat = parseFloat(row[config.getHeaderIndex('col-lat')]),
+          lon = parseFloat(row[config.getHeaderIndex('col-lon')]);
+
+    // Get weather conditions
+    const allWeather = weather.getCurrentAndPredicted(lat, lon);
+
+    // Extract all weather variables
+    for (apiHeader in apiHeaders) {
+      row[ apiHeaders[apiHeader] ] = Utils
+        .getValueFromJSON(apiHeader, allWeather);
+    }
+
+    if (!onlyCheckAPI) {
+      row[config.getHeaderIndex('col-last-updated')] = currentDateTime.toISOString();
+    }
+
+    // Save weather conditions back to Sheet
+    if (!sheetsApi.write([row], configSpreadsheetName + '!A' + iPlus1)) {
+      Logger.log('Error updating Sheet, retrying in 30s');
+      Utilities.sleep(30000);
+      
+      // Decrement `i` so that it ends up the same in the next for-loop iteration
+      i--;
+
+      continue;
+    }
+    
+    // Process activation formula
+    const formulaIdx = config.getHeaderIndex('col-formula') + 1;
+    sheetsApi.forceFormulasEval(iPlus1, formulaIdx);
+    const activate = sheetsApi.getCellValue(iPlus1, formulaIdx);
+    
+    if (!onlyCheckAPI) {
+      try {
+        // Switch Status according to the activation formula value
+        if (!isNaN(lineItemId) && lineItemId > 0) {
+          dv360.switchLIStatus(advertiserId, lineItemId, activate);
+        } else if (!isNaN(insertionOrderId) && insertionOrderId > 0) {
+          dv360.switchIOStatus(advertiserId, insertionOrderId, activate);
+        }
+      } catch (e) {
+        Logger.log('Error updating DV360 API, retrying in 30s');
+        Utilities.sleep(30000);
+        
+        // Decrement `i` so that it ends up the same in the next for-loop iteration
+        i--;
+
+        continue;
+      }
+
+      // Logging of the successful processing (in CSV format for the further analysis).
+      // `[ROW DATA]` is just a label, so the logs can be filtered out by it.
+      row[ config.getHeaderIndex('col-formula') ] = activate;
+      row.push('[ROW DATA]');
+      Logger.log(row.join(','));
+    }
+  }
+
+  Logger.log('[END] monitorWeatherAndSyncWithDV360');
+}
+
+/**
+ * Wrapper function to be called from the spreadsheet menu.
+ * Triggers the main function but with the boolean param set to true.
+ */
+function checkWeather() {
+  monitorWeatherAndSyncWithDV360(true);
+}
+/* END File: ./main.gs */
