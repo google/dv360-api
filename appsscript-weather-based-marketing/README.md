@@ -1,12 +1,12 @@
 # Apps Script Weather Based Marketing
 
-We introduce you a Google Sheets based DV360 campaign management system which automatically enables or disables Line Item (or/and Insertion Orders) with display or TrueView (e.g. HTML5 or YouTube) creatives based on the current temperature and precipitation (rain or snow) in the region. 
+We introduce you a Google Sheets based DV360 campaign management system which automatically enables or disables Line Items (or/and Insertion Orders) with Display or TrueView (e.g. HTML5 or YouTube) creatives based on the current temperature and precipitation (rain or snow) in the region.
 
-This is an External Signal Based Marketing example, where external trigger is the Weather in the specified region. Technically this solution uses an output of the [OpenWeather API](https://openweathermap.org/api) to manage your campaign through [DV360 API](https://developers.google.com/display-video/api/reference/rest).
+This is an External Signal Based Marketing example, where the external trigger is the Weather in the specified region. Technically this solution uses an output of the [OpenWeather API](https://openweathermap.org/api) to manage your campaign through the [DV360 API](https://developers.google.com/display-video/api/reference/rest).
 
 # Installation: Apps Script Project Setup
 
-We recomend to use [clasp](https://github.com/google/clasp) to set up your Apps Script project. Just do the following:
+We recommend using [clasp](https://github.com/google/clasp) to set up your Apps Script project. Just do the following:
 
 1.  Download the code to your working environment (e.g. `git clone
     https://github.com/google/dv360-api.git`)
@@ -42,7 +42,7 @@ From the opened browser window copy a part of the URL with the script ID (this i
 
 After you copied the correct script ID please run [clasp clone <ID>](https://github.com/google/clasp#clone) again. In case you see a message `Project file (.clasp.json) already exists.` you can simply remove this file `rm .clasp.json` and run the command again.
 
-## Spreadsheet set up
+## Spreadsheet setup
 
 First, please make sure you ran `clasp push -f` and you can see the project files in the
 script editor. After reloading the Script Editor window it should look like this:
