@@ -65,6 +65,8 @@ class Config {
       'col-lon':                'Longitude',
       'col-formula':            'Activation Formula',
       'col-last-updated':       'Last Updated',
+      'any-api-url':            'Api URL',
+      'any-api-headers':        'Api Headers',
 
       // Spreadsheet headers
       'headers': [],
@@ -88,6 +90,15 @@ class Config {
    */
   setHeaders(headers) {
     this.config.headers = headers;
+  }
+
+  /**
+   * Returns spreadsheet headers
+   *
+   * @return Spreadsheet headers array
+   */
+  getHeaders() {
+    return this.config.headers;
   }
 
   /**

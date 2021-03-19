@@ -14,12 +14,14 @@
     limitations under the License.
  */
 
-const config = new Config();
-const configSpreadsheetId = config.get('spreadsheet-id')
-  || SpreadsheetApp.getActiveSpreadsheet().getId();
-const configSpreadsheetName = config.get('sheet-name') 
-  || "Weather Trigger";
-const sheetsApi = new SheetsApi(configSpreadsheetId);
+if ("undefined" == typeof config) {
+  const config = new Config();
+  const configSpreadsheetId = config.get('spreadsheet-id')
+    || SpreadsheetApp.getActiveSpreadsheet().getId();
+  const configSpreadsheetName = config.get('sheet-name') 
+    || "Weather Trigger";
+  const sheetsApi = new SheetsApi(configSpreadsheetId);
+}
 
 /**
  * Checks the weather conditions from the Open Weather API and adjusts the
@@ -28,8 +30,8 @@ const sheetsApi = new SheetsApi(configSpreadsheetId);
  * @param {bool} onlyCheckAPI Set to true if you want to only check the API (no DV360 sync)
  * 
  */
-function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
-  Logger.log('[START] monitorLineItemChangesAndSyncWithDV360');
+function monitorApiAndSyncWithDV360(onlyCheckAPI) {
+  Logger.log('[START] monitorApiAndSyncWithDV360');
 
   // If the function is triggered by the standard trigger, it receives
   // the trigger info object as a first param.
@@ -47,14 +49,13 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
   // Configure all wrapper classes
   const auth     = new Auth(config.get('service-account'));
   const dv360    = new DV360(auth.getAuthToken());
-  const weather  = new OpenWeather(config.get('open-weather-api-key'));
 
   sheetsApi.getSheetObject();
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     const iPlus1 = i + 1;
-
+    
     // Check if we already processed this item
     const currentDateTime = new Date();
     const lastUpdated = new Date(
@@ -78,17 +79,23 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
           lat = parseFloat(row[config.getHeaderIndex('col-lat')]),
           lon = parseFloat(row[config.getHeaderIndex('col-lon')]);
 
-    // Get weather conditions
-    const allWeather = weather.getCurrentAndPredicted(lat, lon);
+    // Get API response
+    const anyApi = new AnyApi(
+      row[ config.getHeaderIndex('any-api-url') ],
+      row[ config.getHeaderIndex('any-api-headers') ],
+      config.getHeaders()
+    );
+    const resp = anyApi.getWithParams(row);
 
     // Extract all weather variables
     for (apiHeader in apiHeaders) {
       row[ apiHeaders[apiHeader] ] = Utils
-        .getValueFromJSON(apiHeader, allWeather);
+        .getValueFromJSON(apiHeader, resp);
     }
 
     if (!onlyCheckAPI) {
-      row[config.getHeaderIndex('col-last-updated')] = currentDateTime.toISOString();
+      row[config.getHeaderIndex('col-last-updated')] = currentDateTime
+        .toISOString();
     }
 
     // Save weather conditions back to Sheet
@@ -133,14 +140,14 @@ function monitorWeatherAndSyncWithDV360(onlyCheckAPI) {
     }
   }
 
-  Logger.log('[END] monitorWeatherAndSyncWithDV360');
+  Logger.log('[END] monitorApiAndSyncWithDV360');
 }
 
 /**
  * Wrapper function to be called from the spreadsheet menu.
  * Triggers the main function but with the boolean param set to true
- * which means no DV360 sync will be done..
+ * which means no DV360 sync will be done.
  */
-function checkWeather() {
-  monitorWeatherAndSyncWithDV360(true);
+function checkApi() {
+  monitorApiAndSyncWithDV360(true);
 }
