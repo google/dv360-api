@@ -24,11 +24,10 @@ if ("undefined" == typeof config) {
 }
 
 /**
- * Checks the weather conditions from the Open Weather API and adjusts the
- * DV360 entities status (e.g. IO switched on/off) with DV360 API.
+ * Checks the API and adjusts the DV360 entities status (e.g. IO switched on/off) 
+ * with the DV360 API.
  * 
  * @param {bool} onlyCheckAPI Set to true if you want to only check the API (no DV360 sync)
- * 
  */
 function monitorApiAndSyncWithDV360(onlyCheckAPI) {
   Logger.log('[START] monitorApiAndSyncWithDV360');
@@ -87,7 +86,7 @@ function monitorApiAndSyncWithDV360(onlyCheckAPI) {
     );
     const resp = anyApi.getWithParams(row);
 
-    // Extract all weather variables
+    // Extract api variables (the spreadsheet columns that start with "api:")
     for (apiHeader in apiHeaders) {
       row[ apiHeaders[apiHeader] ] = Utils
         .getValueFromJSON(apiHeader, resp);
@@ -98,7 +97,7 @@ function monitorApiAndSyncWithDV360(onlyCheckAPI) {
         .toISOString();
     }
 
-    // Save weather conditions back to Sheet
+    // Save all the values back to the sheet
     if (!sheetsApi.write([row], configSpreadsheetName + '!A' + iPlus1)) {
       Logger.log('Error updating Sheet, retrying in 30s');
       Utilities.sleep(30000);
