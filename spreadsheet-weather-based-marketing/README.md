@@ -1,5 +1,10 @@
 # Weather Based Marketing Spreadsheet
 
+## Demo Video
+[![Weather Based Marketing Spreadsheet](../imgs/demo-video.png)](http://www.youtube.com/watch?v=LPvYat0U9TI "Weather Based Marketing Spreadsheet")
+YouTube Link: [youtu.be/LPvYat0U9TI](https://youtu.be/LPvYat0U9TI).
+
+## Intro
 Here you will find information on:
 * How to install the Weather Based Marketing Spreadsheet
 * How to configure your DV360 campaign fast
