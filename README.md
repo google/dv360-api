@@ -8,4 +8,4 @@ This repository contains code examples for the [DV360 API](https://developers.go
 
 ## What is the difference between [Spreadsheet Weather Based Marketing](/spreadsheet-weather-based-marketing) and [Apps Script Weather Based Marketing](/appsscript-weather-based-marketing)?
 
-The main difference is that for using the [Spreadsheet Weather Based Marketing](/spreadsheet-weather-based-marketing) you need much less JavaScript knowledge (after the instalation everything you need is spreadsheet working skills). On the other hand if you need more flexibility and you have some JavaScript knowledge you can look at the [Apps Script Weather Based Marketing](/appsscript-weather-based-marketing) solution.
+The main difference is that for using the [Spreadsheet Weather Based Marketing](/spreadsheet-weather-based-marketing) you need much less JavaScript knowledge (after the installation everything you need is spreadsheet working skills). On the other hand if you need more flexibility and you have some JavaScript knowledge you can look at the [Apps Script Weather Based Marketing](/appsscript-weather-based-marketing) solution.
