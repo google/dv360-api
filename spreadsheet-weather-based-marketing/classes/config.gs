@@ -65,6 +65,8 @@ class Config {
       'col-lon':                'Longitude',
       'col-formula':            'Activation Formula',
       'col-last-updated':       'Last Updated',
+      'col-api-url':            'Api URL',
+      'col-api-headers':        'Api Headers',
 
       // Spreadsheet headers
       'headers': [],

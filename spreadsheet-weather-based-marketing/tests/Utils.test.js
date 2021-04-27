@@ -72,3 +72,9 @@ test('getValueFromJSON', () => {
         Utils.getValueFromJSON('agg.foo.!MIN', json)
     ).toBe(0.8);
 });
+
+test('arraysToJson', () => {
+    const a1 = ['foo', 'bar'];
+    const a2 = [1, 2];
+    expect(Utils.arraysToJson(a1, a2)).toEqual({'foo': 1, 'bar': 2});
+});

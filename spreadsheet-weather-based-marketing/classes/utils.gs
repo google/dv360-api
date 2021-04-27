@@ -98,6 +98,20 @@ class Utils {
         throw `Aggregation function "${aggFunction}" is not supported`;
     }
   }
+
+  /**
+   * Combine two arrays of the same size to the JSON.
+   * 
+   * @param {Array} a1 Array for keys
+   * @param {Array} a2 Array for values
+   * @returns {Object} Json { a1.element: a2.element, ... }
+   */
+  static arraysToJson(a1, a2) {
+    const result = {};
+    a1.forEach((key, i) => { result[ key ] = a2[ i ] });
+
+    return result;
+  }
 }
 
 // For tests
