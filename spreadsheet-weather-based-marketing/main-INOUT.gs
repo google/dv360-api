@@ -6,9 +6,9 @@ function main(onlyInQueue = false) {
     }
 
     // Register sheet processors
-    Strategy.register('IN', config.get('col-api-url'), INAnyAPI);
-    //Strategy.register('IN', config.get('col-lat'), OpenWeatherAPI);
-    //Strategy.register('OUT', config.get('col-advertiser-id'), DV360API);
+    Strategy.register('IN', config.get('col-api-url'), INAnyAPIStrategy);
+    Strategy.register('IN', config.get('col-lat'), OpenWeatherAPIStrategy);
+    Strategy.register('OUT', config.get('col-advertiser-id'), DV360APIStrategy);
 
     sheetsApi.getSheetObject();
 
@@ -22,23 +22,35 @@ function main(onlyInQueue = false) {
 
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        const iPlus1 = i + 1;
     
         // Check if we already processed this item
         const currentDateTime = new Date();
         const lastUpdated = new Date(
-          row[ config.getHeaderIndex('col-last-updated') ]
+            row[ config.getHeaderIndex('col-last-updated') ]
         );
         
         const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
         const hoursBetweenUpdates = parseInt(config.get('hours-between-updates'));
-        if (!onlyInQueue && hoursBetweenUpdates && diffHours < hoursBetweenUpdates) {
-          Logger.log(`Row #${i} was already processed ${diffHours}h ago, skipping`);
-          continue;
+        // We take into account the fact that hourly Time-Driven Triggers
+        // might run with a little time diff ("-0.17" hours should cover this diff)
+        if (
+            !onlyInQueue 
+            && hoursBetweenUpdates 
+            && diffHours < (hoursBetweenUpdates - 0.17)
+        ) {
+            Logger.log(
+                `Row #${i} was already processed ${diffHours}h ago `
+                + `(hours between updates:${hoursBetweenUpdates}), skipping`
+            );
+            continue;
         }
 
-        // Run all IN processors (e.g. AnyAPI and OpenWeatherAPI)
+        // Get the JSON from the "IN" processors (e.g. AnyAPI and OpenWeatherAPI)
         const InJson = Strategy.process('IN', sheetHeaders, row, config);
+        if (! InJson) {
+            continue;
+        }
+
         for (apiHeader in apiHeaders) {
             row[ apiHeaders[apiHeader] ] = Utils
                 .getValueFromJSON(apiHeader, InJson);
@@ -50,7 +62,7 @@ function main(onlyInQueue = false) {
         }
 
         // Save weather conditions back to Sheet
-        if (!sheetsApi.write([row], configSpreadsheetName + '!A' + iPlus1)) {
+        if (!sheetsApi.write([row], configSpreadsheetName + '!A' + (i + 1))) {
             Logger.log('Error updating Sheet, retrying in 30s');
             Utilities.sleep(30000);
             
@@ -60,18 +72,15 @@ function main(onlyInQueue = false) {
             continue;
         }
 
-        // Process activation formula
-        const formulaIdx = config.getHeaderIndex('col-formula') + 1;
-        sheetsApi.forceFormulasEval(iPlus1, formulaIdx);
-        const activate = sheetsApi.getCellValue(iPlus1, formulaIdx);
-        row[ config.getHeaderIndex('col-formula') ] = activate;
-/*
+        // Process the activation formula
+        const formulaIdx = config.getHeaderIndex('col-formula');
+        row[ formulaIdx ] = sheetsApi.forceFormulasEval(i + 1, formulaIdx + 1);
+
         // Run all OUT processors (e.g. change DV360 status)
-        Strategy.process('OUT', sheetHeaders, row, config);
-*/        
-        // Logging of the successful processing (in CSV format for the further analysis).
-        // `[ROW DATA]` is just a label, so the logs can be filtered out by it.
-        row.push('[ROW DATA]');
-        Logger.log(row.join(','));
+        if (! onlyInQueue) {
+            Strategy.process('OUT', sheetHeaders, row, config);
+        }
+        
+        Utils.logRowData(row);
     }
 }

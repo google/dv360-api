@@ -119,7 +119,9 @@ class SheetsApi {
   /**
    * Process sheet formulas (force them to be re-evaluated)
    *
-   * @param {string} range A1-Range
+   * @param {number} row Row number
+   * @param {number} col Column number
+   * @returns {*} The evaluated formula output
    */
   forceFormulasEval(row, col) {
     const formula = this.sheetObj.getRange(row,col).getFormula();
@@ -129,5 +131,7 @@ class SheetsApi {
 
     this.sheetObj.getRange(row, col).setFormula(formula);
     SpreadsheetApp.flush();
+
+    return this.getCellValue(row, col);
   }
 }

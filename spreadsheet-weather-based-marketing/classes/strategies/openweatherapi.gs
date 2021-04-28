@@ -15,23 +15,34 @@
  */
 
 /**
- * Class to process Any API calls from the spreadsheet
+ * Class to process OpenWeatherMap API calls from the spreadsheet
  */
-class INAnyAPIStrategy {
+class OpenWeatherAPIStrategy {
     /**
-     * Fetch the any api URL and return it's content in the JSON format.
+     * Fetch the URL and return it's content in the JSON format.
      * 
      * @param {Array} headers Spreadsheet headers
      * @param {Array} data Spreadsheet row data
      * @returns {Object} JSON output
      */
     process(headers, data, config) {
-        const url = data[ config.getHeaderIndex('col-api-url') ];
-        const apiHeaders = data[ config.getHeaderIndex('col-api-headers') ];
-        const anyApi = new AnyAPI(url, apiHeaders);
+        const apiKey = config.get('open-weather-api-key');
+        if (! apiKey) {
+            throw 'OpenWeather API key cannot be empty. Please put your key' 
+                + ' to the "open-weather-api-key" config section.';
+        }
+
+        const params = {
+            lat: data[ config.getHeaderIndex('col-lat') ],
+            lon: data[ config.getHeaderIndex('col-lon') ],
+            exclude: "minutely,hourly",
+            units: "metric",
+            appid: apiKey,
+        };
         
-        const params = Utils.arraysToJson(headers, data);
-        anyApi.setParams(params);
+        const url = "https://api.openweathermap.org/data/2.5/onecall?"
+            + Utils.encodeParameters(params);
+        const anyApi = new AnyAPI(url);
 
         return anyApi.get();
     }

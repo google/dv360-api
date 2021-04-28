@@ -14,6 +14,8 @@
     limitations under the License.
  */
 
+const ANYAPICACHE = {};
+
 /**
  * Main class to process API calls
  */
@@ -24,11 +26,9 @@ class AnyAPI {
      * @param {string} url API Endpoint
      * @param {Object} headers HTTP Headers for the api call
      */
-    constructor(url, headers) {
+    constructor(url, headers = '') {
         this.url = url;
         this.headers = headers;
-        
-        this.cache = {};
 
         // Placeholders in the URL & headers
         this.placeholderStart = '{{';
@@ -65,12 +65,12 @@ class AnyAPI {
         this.headers = this.headers || '{}';
 
         const cacheKey = this.url + '|' + JSON.stringify(this.headers);
-        if (! (cacheKey in this.cache)) {
+        if (! (cacheKey in ANYAPICACHE)) {
             const res = UrlFetchApp.fetch(this.url, JSON.parse(this.headers));
-            this.cache[cacheKey] = JSON.parse(res.getContentText());
+            ANYAPICACHE[cacheKey] = JSON.parse(res.getContentText());
         }
 
-        return this.cache[cacheKey];
+        return ANYAPICACHE[cacheKey];
     }
 }
 

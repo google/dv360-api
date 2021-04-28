@@ -112,6 +112,19 @@ class Utils {
 
     return result;
   }
+
+  /**
+   * Logging of the successful processing (in CSV format for the further analysis).
+   * `[ROW DATA]` is just a label, so the logs can be filtered out by it.
+   * 
+   * @param {Array} row The spreadsheet row
+   * @param {string} label A lable to be added to the log message
+   * @returns {void}
+   */
+  static logRowData(row, label='[ROW DATA]') {
+    row.push(label);
+    Logger.log(row.join(','));
+  }
 }
 
 // For tests
