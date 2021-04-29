@@ -44,11 +44,21 @@ class DV360APIStrategy {
         const auth     = new Auth(config.get('service-account'));
         const dv360    = new DV360(auth.getAuthToken());
 
-        // Switch Status according to the activation formula value
-        if (!isNaN(lineItemId) && lineItemId > 0) {
-            dv360.switchLIStatus(advertiserId, lineItemId, activate);
-        } else if (!isNaN(insertionOrderId) && insertionOrderId > 0) {
-            dv360.switchIOStatus(advertiserId, insertionOrderId, activate);
+        // Max 3 retries
+        for (const i=0; i<3; i++) {
+            try {
+                // Switch Status according to the activation formula value
+                if (!isNaN(lineItemId) && lineItemId > 0) {
+                    dv360.switchLIStatus(advertiserId, lineItemId, activate);
+                } else if (!isNaN(insertionOrderId) && insertionOrderId > 0) {
+                    dv360.switchIOStatus(advertiserId, insertionOrderId, activate);
+                }
+
+                break;
+            } catch (e) {
+                Logger.log('Error updating DV360 API, retrying in 5s');
+                Utilities.sleep(5000);
+            }
         }
     }
 }

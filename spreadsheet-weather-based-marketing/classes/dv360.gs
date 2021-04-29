@@ -64,7 +64,6 @@ class DV360 {
       Logger.log('HTTP code: ' + res.getResponseCode());
       Logger.log('API error: ' + res.getContentText());
       Logger.log('URL: ' + url);
-      Logger.log('params: ' + JSON.stringify(params, 0, 2));
       throw new Error(res.getContentText());
     }
 
