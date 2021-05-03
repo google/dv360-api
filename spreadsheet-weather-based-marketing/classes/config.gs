@@ -32,6 +32,12 @@ class Config {
       'open-weather-api-key': '',
 
       /** 
+       * *Optional*, Imperial VS. Metric units.
+       * Possible values: "standard" (default, if empty), "metric" and "imperial"
+       */
+      'open-weather-api-units': 'metric',
+
+      /** 
        * *Optional*, only if you want to use a service account.
        * If you leave this parameter empty, apps script will use
        * an active Google account under which you run the apps script. 

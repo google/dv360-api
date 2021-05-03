@@ -36,7 +36,7 @@ class OpenWeatherAPIStrategy {
             lat: data[ config.getHeaderIndex('col-lat') ],
             lon: data[ config.getHeaderIndex('col-lon') ],
             exclude: "minutely,hourly",
-            units: "metric",
+            units: config.get('open-weather-api-units'),
             appid: apiKey,
         };
         
