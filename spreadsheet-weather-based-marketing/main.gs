@@ -48,9 +48,12 @@ function main(onlyInList = false) {
     config.setHeaders(sheetHeaders);
     const apiHeaders = config.getApiHeaders();
 
+    // These formulas should be evaluated only once (on the activation step)
+    const excludeEval = [config.getHeaderIndex('col-formula')];
+
     for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-    
+        const row = sheetsApi.getEvaluated(rows[i], i, excludeEval);
+
         // Check if we already processed this item
         const currentDateTime = new Date();
         const lastUpdated = new Date(

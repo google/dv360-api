@@ -94,6 +94,28 @@ class SheetsApi {
   }
 
   /**
+   * Get values for the formulas in the row
+   *
+   * @param {Array} row Data from the sheet
+   * @param {integer} rowNum Row number in the sheet
+   * @param {Array} excludeIdx Do not evaluate these array elements
+   * @returns {Array} Evaluated data
+   */
+  getEvaluated(row, rowNum, excludeIdx) {
+    for (let i=0; i<row.length; i++) {
+      if (
+        excludeIdx.indexOf(i) < 0
+        && 'string' == typeof row[i]
+        && row[i].startsWith('=')
+      ) {
+        row[i] = this.getCellValue(rowNum+1, i+1);
+      }
+    }
+
+    return row;
+  }
+
+  /**
    * Get a spreadsheet object to perform read/write operations.
    * Check if specified spreadsheet settings are correct 
    * and init default sheet object.s
