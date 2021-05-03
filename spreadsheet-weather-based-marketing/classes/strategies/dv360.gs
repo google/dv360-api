@@ -45,7 +45,8 @@ class DV360APIStrategy {
         const dv360    = new DV360(auth.getAuthToken());
 
         // Max 3 retries
-        for (const i=0; i<3; i++) {
+        const maxRetries = 3;
+        for (let i=0; i<maxRetries; i++) {
             try {
                 // Switch Status according to the activation formula value
                 if (!isNaN(lineItemId) && lineItemId > 0) {
@@ -58,6 +59,10 @@ class DV360APIStrategy {
             } catch (e) {
                 Logger.log('Error updating DV360 API, retrying in 5s');
                 Utilities.sleep(5000);
+
+                if (i == maxRetries-1) {
+                    throw `Failed to update DV360 API after ${maxRetries} retries`;
+                }
             }
         }
     }

@@ -27,7 +27,8 @@
 // (copy and paste the Weather Based Marketing Spreadsheet URL)
 var SPREADSHEET_URL = '';
 
-var SHEET_NAME = 'Weather Trigger';
+// *Mandatory*: Specify the sheet and the columns names
+var SHEET_NAME = 'Triggers';
 var ACTIVATION_FORMULA = 'Activation Formula';
 var AD_GROUP_NAME = 'AdGroup Name';
 // ==== Configuration End   ==== //
@@ -36,6 +37,10 @@ var AD_GROUP_NAME = 'AdGroup Name';
  * The main entry point for the Ads Script
  */
 function main() {
+  if (! SPREADSHEET_URL) {
+    throw 'Error: Please specify SPREADSHEET_URL!';
+  }
+
   var rows = getSheetData(SPREADSHEET_URL, SHEET_NAME);
   var activationFormulaIdx = rows[0].indexOf(ACTIVATION_FORMULA);
   var adGroupIdx = rows[0].indexOf(AD_GROUP_NAME);
@@ -93,7 +98,7 @@ function switchAdGroupStatus(adGroupName, activate) {
  * Retrieves the data for a worksheet.
  *
  * @param {Object} spreadsheetUrl The spreadsheet.
- * @param {number} sheetName The sheet index.
+ * @param {string} sheetName The sheet name.
  * @return {Array} The data as a two dimensional array.
  */
 function getSheetData(spreadsheetUrl, sheetName) {
