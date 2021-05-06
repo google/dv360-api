@@ -49,7 +49,7 @@ test('get', () => {
     expect(() => {inApi.get()}).toThrow('API URL cannot be empty.');
 
     inApi = new AnyAPI('https://any-api-url.test', '');
-    inApi.cache = {'https://any-api-url.test|"{}"': {'test': 'OK'}};
+    inApi.setCache('https://any-api-url.test|"{}"', {'test': 'OK'});
 
     expect(inApi.get()).toEqual({'test': 'OK'});
 });

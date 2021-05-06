@@ -72,6 +72,16 @@ class AnyAPI {
 
         return ANYAPICACHE[cacheKey];
     }
+
+    /**
+     * Add something to the cache
+     * 
+     * @param {*} key Key
+     * @param {*} value Value
+     */
+    setCache(key, value) {
+        ANYAPICACHE[key] = value;
+    }
 }
 
 // For tests
