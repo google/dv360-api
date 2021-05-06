@@ -78,3 +78,16 @@ test('arraysToJson', () => {
     const a2 = [1, 2];
     expect(Utils.arraysToJson(a1, a2)).toEqual({'foo': 1, 'bar': 2});
 });
+
+test('isDateOlderThanNHours', () => {
+    let d1 = new Date();
+    let d2 = '2999-01-01';
+    expect(Utils.isDateOlderThanNHours(d1, d2, 24)).toBe(false);
+
+    d2 = Date(d1 - 23*60*60*1000);
+    expect(Utils.isDateOlderThanNHours(d1, d2, 24)).toBe(false);
+    expect(Utils.isDateOlderThanNHours(d1, d2, 0)).toBe(true);
+
+    d2 = new Date(d1 - 25*60*60*1000);
+    expect(Utils.isDateOlderThanNHours(d1, d2, 24)).toBe(true);
+});

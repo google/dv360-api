@@ -56,22 +56,17 @@ function main(onlyInList = false) {
 
         // Check if we already processed this item
         const currentDateTime = new Date();
-        const lastUpdated = new Date(
-            row[ config.getHeaderIndex('col-last-updated') ]
-        );
-        
-        const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
-        const hoursBetweenUpdates = parseInt(config.get('hours-between-updates'));
-        // We take into account the fact that hourly Time-Driven Triggers
-        // might run with a little time diff ("-0.17" hours should cover this diff)
         if (
-            !onlyInList 
-            && hoursBetweenUpdates 
-            && diffHours < (hoursBetweenUpdates - 0.17)
+            !onlyInList
+            && !Utils.isDateOlderThanNHours(
+                currentDateTime, 
+                row[ config.getHeaderIndex('col-last-updated') ],
+                config.get('hours-between-updates')
+            )
         ) {
             Logger.log(
-                `Row #${i} was already processed ${diffHours}h ago `
-                + `(hours between updates:${hoursBetweenUpdates}), skipping`
+                `Row #${i} was already processed (#hours between updates:`
+                    + `${config.get('hours-between-updates')}), skipping`
             );
             continue;
         }

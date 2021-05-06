@@ -125,6 +125,40 @@ class Utils {
     row.push(label);
     Logger.log(row.join(','));
   }
+
+  /**
+   * Check if the lastUpdated is older then `currentDateTime - hoursBetweenUpdates`
+   * 
+   * @param {string|Date} currentDateTime Current date
+   * @param {string|Date} lastUpdated Date of the last update
+   * @param {int} hoursBetweenUpdates Number of hours between events. If 0, then
+   *  always will return true 
+   * @param {float} errorDiff For apps script scheduler (e.g. daily 8AM-9AM) 
+   *  which doesn't run at the very same hour and minute as the last run
+   * @returns {bool} TRUE if it is older else FALSE
+   */
+  static isDateOlderThanNHours(
+    currentDateTime, 
+    lastUpdated, 
+    hoursBetweenUpdates, 
+    errorDiff = 0.17
+  ) {
+    if (! currentDateTime instanceof Date) {
+      currentDateTime = new Date(currentDateTime);
+    }
+
+    if (! (lastUpdated instanceof Date)) {
+      lastUpdated = new Date(lastUpdated);
+    }
+
+    hoursBetweenUpdates = parseInt(hoursBetweenUpdates);
+    if (! hoursBetweenUpdates) {
+      return true;
+    }
+
+    const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
+    return 0 < diffHours && diffHours > (hoursBetweenUpdates - errorDiff);
+  }
 }
 
 // For tests
