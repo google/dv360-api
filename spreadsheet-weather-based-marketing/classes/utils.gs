@@ -143,6 +143,10 @@ class Utils {
     hoursBetweenUpdates, 
     errorDiff = 0.17
   ) {
+    if (!lastUpdated) {
+      return true;
+    }
+
     if (! currentDateTime instanceof Date) {
       currentDateTime = new Date(currentDateTime);
     }

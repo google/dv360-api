@@ -45,13 +45,14 @@ class Strategy {
      * @param queueName {string} Decides which queue (IN or OUT)
      * @param headers {array} List of the header columns from the spreadsheet
      * @param data {array} The data from the spreadsheet row.
+     * @param idx {int} Row index, for reporting purposes.
      * @returns {*} The output of the classHandler.process(...)
      */
-    static process(queueName, header, data, config) {
+    static process(queueName, header, data, config, idx = null) {
         for (const columnName in STRATEGYQUEUE[queueName]) {
             if (header.indexOf(columnName) > -1) {
                 const tmpObject = new STRATEGYQUEUE[queueName][columnName]();
-                return tmpObject.process(header, data, config);
+                return tmpObject.process(header, data, config, idx);
             }
         }
 

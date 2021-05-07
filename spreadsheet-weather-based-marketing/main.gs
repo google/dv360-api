@@ -38,9 +38,9 @@ function main(onlyInList = false) {
     Strategy.register('IN', config.get('col-lat'), OpenWeatherAPIStrategy);
     Strategy.register('OUT', config.get('col-advertiser-id'), DV360APIStrategy);
 
-    sheetsApi.getSheetObject();
-
+    
     // Get items from Sheet
+    sheetsApi.getSheetObject();
     const rows = sheetsApi.get(configSpreadsheetName);
     
     // Pre-process sheet headers

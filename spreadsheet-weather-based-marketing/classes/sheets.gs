@@ -27,10 +27,8 @@ class SheetsApi {
     /** @type {null|Object} */
     this.sheetObj = null;
 
-    /** @type {Object} */
-    this.defaultMode = {
-      'valueRenderOption': 'FORMULA',
-    };
+    /** @type {string} */
+    this.defaultMode = 'FORMULA';
   }
 
   /**
@@ -65,15 +63,21 @@ class SheetsApi {
    * Fetches data from sheet
    *
    * @param {string} range A1-Range
-   * @param {string} renderMode Render mode, [more info](https://developers.google.com/sheets/api/reference/rest/v4/ValueRenderOption)
+   * @param {string|bool} renderMode Render mode, [more info](https://developers.google.com/sheets/api/reference/rest/v4/ValueRenderOption)
    *
    * @return {!Array<!Array<!Object>>}
    */
-  get(range, renderMode) {
+  get(range, renderModeString = false) {
+    if (! this.spreadsheetId) {
+      this.getSheetObject();
+    }
+
     return Sheets_v4.Spreadsheets.Values.get(
         this.spreadsheetId,
         range,
-        renderMode || this.defaultMode
+        {
+          'valueRenderOption': renderModeString || this.defaultMode,
+        }
       )['values'];
   }
 

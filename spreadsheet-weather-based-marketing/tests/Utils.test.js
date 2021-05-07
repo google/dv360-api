@@ -83,6 +83,7 @@ test('isDateOlderThanNHours', () => {
     let d1 = new Date();
     let d2 = '2999-01-01';
     expect(Utils.isDateOlderThanNHours(d1, d2, 24)).toBe(false);
+    expect(Utils.isDateOlderThanNHours(d1, '', 24)).toBe(true);
 
     d2 = Date(d1 - 23*60*60*1000);
     expect(Utils.isDateOlderThanNHours(d1, d2, 24)).toBe(false);
