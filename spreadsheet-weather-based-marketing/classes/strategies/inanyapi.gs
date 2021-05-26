@@ -25,7 +25,7 @@ class INAnyAPIStrategy {
      * @param {Array} data Spreadsheet row data
      * @returns {Object} JSON output
      */
-    process(headers, data, config) {
+    static process(headers, data, config) {
         const url = data[ config.getHeaderIndex('col-api-url') ];
         const apiHeaders = data[ config.getHeaderIndex('col-api-headers') ];
         const anyApi = new AnyAPI(url, apiHeaders);

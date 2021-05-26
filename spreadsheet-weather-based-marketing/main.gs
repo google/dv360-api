@@ -20,28 +20,26 @@ const configSpreadsheetId = config.get('spreadsheet-id')
 const configSpreadsheetName = config.get('sheet-name') 
   || "Triggers";
 const sheetsApi = new SheetsApi(configSpreadsheetId);
+sheetsApi.getSheetObject();
 
 /**
  * Main entry point for the spreadsheet processing
  * 
- * @param {bool} onlyInList If true, process only "IN" list in the Strategy
+ * @param {Array} inQueue Process this array of strategies as "IN" list
+ * @param {Array} outQueue Process this array of strategies as "OUT" list
  */
-function main(onlyInList = false) {
-    // If the function is triggered by the standard trigger, it receives
-    // the trigger info object as a first param.
-    if (typeof onlyInList !== "boolean") {
-        onlyInList = false;
+function main(inQueue, outQueue = []) {
+    if (!inQueue || !Array.isArray(inQueue)) {
+        throw 'ERROR:main: Please specify "inQueue" (should be array).';
     }
 
-    // Register sheet processors
-    Strategy.register('IN', config.get('col-api-url'), INAnyAPIStrategy);
-    Strategy.register('IN', config.get('col-lat'), OpenWeatherAPIStrategy);
-    Strategy.register('OUT', config.get('col-advertiser-id'), DV360APIStrategy);
+    Strategy.registerArray('IN', inQueue);
+    Strategy.registerArray('OUT', outQueue);
 
-    
-    // Get items from Sheet
-    sheetsApi.getSheetObject();
-    const rows = sheetsApi.get(configSpreadsheetName);
+    // Get all rows from the sheet
+    const rows = outQueue
+        ? sheetsApi.get(configSpreadsheetName) 
+        : sheetsApi.get(configSpreadsheetName, 'UNFORMATTED_VALUE');
     
     // Pre-process sheet headers
     const sheetHeaders = rows[0];
@@ -51,8 +49,14 @@ function main(onlyInList = false) {
     // These formulas should be evaluated only once (on the activation step)
     const excludeEval = [config.getHeaderIndex('col-formula')];
 
+    // Iterate over the sheet data
     for (let i = 1; i < rows.length; i++) {
-        const row = sheetsApi.getEvaluated(rows[i], i, excludeEval);
+        // Since we don't evaluate formulas when we read the sheet
+        // we need to make sure that `row` contains values not formulas. For the
+        // empty outQueue we can ignore this, since in this case we get values.
+        let row = outQueue 
+            ? sheetsApi.getEvaluated(rows[i], i, excludeEval) 
+            : rows[i];
 
         // Check if we already processed this item
         const currentDateTime = new Date();
@@ -71,42 +75,60 @@ function main(onlyInList = false) {
             continue;
         }
 
-        // Get the JSON from the "IN" processors (e.g. AnyAPI and OpenWeatherAPI)
-        const InJson = Strategy.process('IN', sheetHeaders, row, config);
-        if (! InJson) {
-            continue;
-        }
+        // Process "IN" queue (e.g. AnyAPI and OpenWeatherAPI).
+        row = Strategy.process('IN', sheetHeaders, row, config, i);
 
-        for (apiHeader in apiHeaders) {
-            row[ apiHeaders[apiHeader] ] = Utils
-                .getValueFromJSON(apiHeader, InJson);
-        }
-        
-        if(!onlyInList) {
-            row[config.getHeaderIndex('col-last-updated')] = currentDateTime
-                .toISOString();
-        }
+        // Write retrived data back to the spreadsheet.
+        sheetsApi.write([row], configSpreadsheetName + '!A' + (i + 1));
 
-        // Save weather conditions back to Sheet
-        if (!sheetsApi.write([row], configSpreadsheetName + '!A' + (i + 1))) {
-            Logger.log('Error updating Sheet, retrying in 5s');
-            Utilities.sleep(5000);
-            
-            // Decrement `i` so that it ends up the same in the next for-loop iteration
-            i--;
-    
-            continue;
-        }
+        // If out queue is not empty, then evaluate the activation formula
+        // and process the out queue
+        if (outQueue) {
+            // Process the activation formula
+            const formulaIdx = config.getHeaderIndex('col-formula');
+            row[ formulaIdx ] = sheetsApi.forceFormulasEval(i + 1, formulaIdx + 1);
 
-        // Process the activation formula
-        const formulaIdx = config.getHeaderIndex('col-formula');
-        row[ formulaIdx ] = sheetsApi.forceFormulasEval(i + 1, formulaIdx + 1);
-
-        // Run all OUT processors (e.g. change DV360 status)
-        if (! onlyInList) {
+            // Run all OUT processors (e.g. change DV360 status)
             Strategy.process('OUT', sheetHeaders, row, config);
         }
         
         Utils.logRowData(row);
     }
+}
+
+/**
+ * Will monitor the weather (and "any api") and sync the LI/IO status with 
+ * DV360 accordingly.
+ */
+function monitorWeatherAndSyncWithDV360(onlyInQueue = false) {
+    if ('boolean' === typeof onlyInQueue) {
+        onlyInQueue = false;
+    }
+
+    // Register sheet processors
+    const inQueue = [
+        {[config.get('col-lat')]: OpenWeatherAPIStrategy},
+        {[config.get('col-api-url')]: INAnyAPIStrategy},
+    ];
+
+    if (! onlyInQueue) {
+        const outQueue = [{[config.get('col-advertiser-id')]: DV360APIStrategy}];
+    }
+
+    return main(inQueue, outQueue);
+}
+
+/**
+ * Will monitor the weather (and "any api"). It will NOT sync with the DV360!
+ */
+function checkWeather() {
+    return monitorWeatherAndSyncWithDV360(true);
+}
+
+/**
+ * Added to support naming convension. Will monitor "any api" (and the weather) 
+ * and sync the LI/IO status with DV360 accordingly.
+ */
+function monitorAnyApiAndSyncWithDV360() {
+    return monitorWeatherAndSyncWithDV360();
 }

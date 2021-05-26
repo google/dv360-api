@@ -25,7 +25,7 @@ class DV360APIStrategy {
      * @param {Array} data Spreadsheet row data
      * @returns {Object} JSON output
      */
-    process(headers, data, config) {
+    static process(headers, data, config) {
         const activate = data[ config.getHeaderIndex('col-formula') ],
             lineItemId = parseInt(
                 data[ config.getHeaderIndex('col-line-item-id') ]

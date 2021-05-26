@@ -27,7 +27,7 @@ class DV360WatchdogStrategy {
      * @param {int} rowIdx Row index (for reporting purposes)
      * @returns {Object} JSON output
      */
-    process(headers, data, config, rowIdx) {
+    static process(headers, data, config, rowIdx) {
         const activate = data[ config.getHeaderIndex('col-formula') ],
             lineItemId = parseInt(
                 data[ config.getHeaderIndex('col-line-item-id') ]

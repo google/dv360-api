@@ -32,7 +32,8 @@ class SheetsApi {
   }
 
   /**
-   * Writes data to spreadsheet
+   * Save weather conditions back to the sheet (retry 3 times in case of 
+   * error, if after 3 times still not written, then throw an exception).
    *
    * @param {!Array<!Array<string|number|boolean>>} rows Rows
    * @param {string} range Range
@@ -47,16 +48,20 @@ class SheetsApi {
       valueInputOption: "USER_ENTERED",
     };
 
-    try {
-      Sheets_v4.Spreadsheets.Values
-        .update(valueRange, this.spreadsheetId, range, options);
-      SpreadsheetApp.flush();
-
-      return true;
-    } catch (e) {
-      Logger.log(e);
-      return false;
+    const maxRetries = 3;
+    for (let i=0; i<maxRetries; i++) {
+      try {
+        Sheets_v4.Spreadsheets.Values
+          .update(valueRange, this.spreadsheetId, range, options);
+        SpreadsheetApp.flush();
+  
+        return true;
+      } catch (e) {
+        Logger.log(e);
+      }
     }
+
+    throw `ERROR:sheets: Not able to update the sheet after ${maxRetries} retries.`;
   }
 
   /**

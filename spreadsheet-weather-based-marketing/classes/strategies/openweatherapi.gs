@@ -25,7 +25,7 @@ class OpenWeatherAPIStrategy {
      * @param {Array} data Spreadsheet row data
      * @returns {Object} JSON output
      */
-    process(headers, data, config) {
+    static process(headers, data, config) {
         const apiKey = config.get('open-weather-api-key');
         if (! apiKey) {
             throw 'OpenWeather API key cannot be empty. Please put your key' 

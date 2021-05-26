@@ -36,7 +36,30 @@ class Strategy {
      * @returns {void}
      */
     static register(queueName, fieldName, classHandler) {
-        STRATEGYQUEUE[queueName][fieldName] = classHandler;
+        if (! (fieldName in STRATEGYQUEUE[queueName])) {
+            STRATEGYQUEUE[queueName][fieldName] = [];
+        }
+
+        STRATEGYQUEUE[queueName][fieldName].push(classHandler);
+    }
+
+    /** 
+     * Register am array of new handler classes.
+     * 
+     * @param queueName {string} Decides which queue (IN or OUT)
+     * @param handlers {Array} This array contains classes which handle the data 
+     *  processing
+     * @returns {void}
+     */
+    static registerArray(queueName, handlers) {
+        if (! handlers) {
+            return;
+        }
+
+        for (let i in handlers) {
+            const key = Object.keys(handlers[i])[0];
+            this.register(queueName, key, handlers[i][key]);
+        }
     }
 
     /** 
@@ -50,9 +73,24 @@ class Strategy {
      */
     static process(queueName, header, data, config, idx = null) {
         for (const columnName in STRATEGYQUEUE[queueName]) {
-            if (header.indexOf(columnName) > -1) {
-                const tmpObject = new STRATEGYQUEUE[queueName][columnName]();
-                return tmpObject.process(header, data, config, idx);
+            if (
+                header.indexOf(columnName) > -1
+                && STRATEGYQUEUE[queueName][columnName]
+            ) {
+                let processedRow = data;
+                for (let i in STRATEGYQUEUE[queueName][columnName]) {
+                    if (
+                        !this.strategyAlreadyProcessed(
+                            STRATEGYQUEUE[queueName][columnName][i],
+                            processedRow
+                        )
+                    ) {
+                        processedRow = STRATEGYQUEUE[queueName][columnName][i]
+                            .process(header, processedRow, config, idx);
+                    }
+                }
+                
+                return processedRow;
             }
         }
 

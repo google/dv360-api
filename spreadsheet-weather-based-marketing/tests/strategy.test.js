@@ -23,27 +23,41 @@
  */
 
 const Strategy = require('../classes/strategy.gs');
+const Config = require('../classes/config.gs');
 
 class StrategyTest {
     constructor() {
     }
 
-    process(headers, data) {
+    static process(headers, data) {
         return data;
     }
 }
 
+class StrategyTest2 {
+    constructor() {
+    }
+
+    static process(headers, data) {
+        return headers;
+    }
+}
+
+const currentDateTime = new Date().toISOString();
+
 const spreadSheetData = [
-    ['Api URL', 'Api Headers', 'Api Param: Region', 'Strategy Test'],
+    ['Api URL', 'Api Headers', 'Api Param: Region', 'Strategy Test', 'Last Updated'],
     [
         'https://any-api-url.test',
         '{"headers":{"apikey": "some-key"}}',
-        'param-value'
+        'param-value',
+        ''
     ],
     [
         'https://any-api-url.test?q={{Api Param: Region}}',
         '{"headers":{"apikey": "{{Api Param: Region}}"}}',
-        'param-value'
+        'param-value',
+        `{"StrategyTest2":"${currentDateTime}"}`
     ]
 ];
 
@@ -56,3 +70,21 @@ test('register-and-process', () => {
     expect(Strategy.process('OUT', spreadSheetData[0], spreadSheetData[1]))
         .toBe(spreadSheetData[1]);
 });
+
+test('registerArray', () => {
+    Strategy.register('IN', 'Strategy Test', StrategyTest);
+    Strategy.register('IN', 'Strategy Test', StrategyTest2);
+    expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1]))
+        .toBe(spreadSheetData[0]);
+});
+
+test('updateTime', () => {
+    const config = new Config();
+    config.config['hours-between-updates'] = 1;
+    
+    Strategy.register('IN', 'Strategy Test', StrategyTest);
+    Strategy.register('IN', 'Strategy Test', StrategyTest2);
+    expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1], config))
+        .toBe(spreadSheetData[1]);
+});
+
