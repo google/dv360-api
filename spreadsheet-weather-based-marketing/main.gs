@@ -76,10 +76,13 @@ function main(inQueue, outQueue = []) {
         }
 
         // Process "IN" queue (e.g. AnyAPI and OpenWeatherAPI).
-        row = Strategy.process('IN', sheetHeaders, row, config, i);
-
-        // Write retrived data back to the spreadsheet.
-        sheetsApi.write([row], configSpreadsheetName + '!A' + (i + 1));
+        const inRow = Strategy.process('IN', sheetHeaders, row, config, i);
+        
+        // If nothing changed, then don't write back to the sheet
+        if (JSON.stringify(inRow) !== JSON.stringify(row)) {
+            // Write retrived data back to the spreadsheet.
+            sheetsApi.write([row], configSpreadsheetName + '!A' + (i + 1));
+        }
 
         // If out queue is not empty, then evaluate the activation formula
         // and process the out queue

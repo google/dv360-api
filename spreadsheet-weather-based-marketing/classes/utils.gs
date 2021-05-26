@@ -143,6 +143,11 @@ class Utils {
     hoursBetweenUpdates, 
     errorDiff = 0.17
   ) {
+    hoursBetweenUpdates = parseInt(hoursBetweenUpdates);
+    if (! hoursBetweenUpdates) {
+      return true;
+    }
+
     if (!lastUpdated) {
       return true;
     }
@@ -153,11 +158,6 @@ class Utils {
 
     if (! (lastUpdated instanceof Date)) {
       lastUpdated = new Date(lastUpdated);
-    }
-
-    hoursBetweenUpdates = parseInt(hoursBetweenUpdates);
-    if (! hoursBetweenUpdates) {
-      return true;
     }
 
     const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;

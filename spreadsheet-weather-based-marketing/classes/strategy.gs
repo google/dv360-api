@@ -77,16 +77,27 @@ class Strategy {
                 header.indexOf(columnName) > -1
                 && STRATEGYQUEUE[queueName][columnName]
             ) {
-                let processedRow = data;
+                // We don't want to change the original array
+                let processedRow = [...data];
+
+                // Looking for the strategy
                 for (let i in STRATEGYQUEUE[queueName][columnName]) {
-                    if (
-                        !this.strategyAlreadyProcessed(
-                            STRATEGYQUEUE[queueName][columnName][i],
-                            processedRow
-                        )
-                    ) {
+                    const lastUpdatedIdx = config.getHeaderIndex('col-last-updated');
+                    const strategyName = STRATEGYQUEUE[queueName][columnName][i].name;
+
+                    if (!this.strategyAlreadyProcessed(
+                            strategyName,
+                            processedRow[ lastUpdatedIdx ],
+                            config.get('hours-between-updates')
+                    )) {
                         processedRow = STRATEGYQUEUE[queueName][columnName][i]
                             .process(header, processedRow, config, idx);
+                        
+                        processedRow[ lastUpdatedIdx ] = this
+                            .genLastUpdatedJSON(
+                                strategyName,
+                                processedRow[ lastUpdatedIdx ]
+                            );
                     }
                 }
                 
@@ -95,30 +106,74 @@ class Strategy {
         }
 
         console.log(
-            'Strategy.process: No handler class is found, nothing to process.', 
+            'LOG:Strategy.process: No handler class is found, nothing to process.', 
             queueName, header, data, STRATEGYQUEUE
         );
     }
 
-    /** 
-     * Flush (empty) the queue.
+    /**
+     * Returns TRUE if strategy is already processed, else FALSE
      * 
-     * @param queueName {string} Flush this queue (IN or OUT). If empty then flush both.
-     * @returns {void}
+     * @param {string} strategyName Strategy name
+     * @param {string} lastUpdatedJSON Value of the "Last Updated", in JSON format
+     * @param {int} hoursBetweenUpdates Hours between updates
+     * @returns {bool}
      */
-    static flush(queueName = '') {
-        if (queueName) {
-            STRATEGYQUEUE[queueName] = {};
-        } else {
-            STRATEGYQUEUE = {
-                'IN': {},
-                'OUT': {},
-            };
+    static strategyAlreadyProcessed(
+        strategyName, 
+        lastUpdatedJSON, 
+        hoursBetweenUpdates
+    ) {
+        const lastUpdated = this.getLastUpdated(
+            strategyName,
+            lastUpdatedJSON
+        );
+        const currentDateTime = new Date();
+
+        return ! Utils.isDateOlderThanNHours(
+            currentDateTime, 
+            lastUpdated,
+            hoursBetweenUpdates
+        )
+    }
+
+    /**
+     * Extract and return the last updated date for the specific strategy
+     * 
+     * @param {string} strategyName Strategy name
+     * @param {strng} json Value of the "Last Updated", in JSON format
+     * @returns {string} Return empty string if date is not found
+     */
+    static getLastUpdated(strategyName, json) {
+        json = this.jsonParseSafe(json);
+        return strategyName in json ? json[strategyName] : '';
+    }
+
+    /**
+     * Safe way to parse JSON, not triggering exception.
+     * 
+     * @param {string} json JSON to parse
+     * @returns {Object} JSON Object
+     */
+    static jsonParseSafe(json) {
+        try {
+            return JSON.parse(json);
+        } catch (e) {
+            console.log('WARNING:Strategy.jsonParseSafe', e);
+            return {};
         }
+    }
+
+    static genLastUpdatedJSON(strategyName, json) {
+        json = this.jsonParseSafe(json);
+        json[ strategyName ] = (new Date()).toISOString();
+
+        return json;
     }
 }
 
 // For tests
 if (typeof module !== 'undefined') {
     module.exports = Strategy;
+    const Utils = require('utils.gs');
 }

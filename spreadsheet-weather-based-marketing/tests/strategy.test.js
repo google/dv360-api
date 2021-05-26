@@ -24,6 +24,7 @@
 
 const Strategy = require('../classes/strategy.gs');
 const Config = require('../classes/config.gs');
+const Utils = require('../classes/utils.gs');
 
 class StrategyTest {
     constructor() {
@@ -76,6 +77,13 @@ test('registerArray', () => {
     Strategy.register('IN', 'Strategy Test', StrategyTest2);
     expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1]))
         .toBe(spreadSheetData[0]);
+});
+
+test('helper-functions', () => {
+    //jsonParseSafe
+    const json = {'key': 'value'};
+    expect(Strategy.jsonParseSafe(JSON.stringify(json))).toBe(json);
+    expect(Strategy.jsonParseSafe(JSON.stringify(''))).toBe({});
 });
 
 test('updateTime', () => {
