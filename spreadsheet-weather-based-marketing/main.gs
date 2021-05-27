@@ -23,10 +23,10 @@ const sheetsApi = new SheetsApi(configSpreadsheetId);
 sheetsApi.getSheetObject();
 
 /**
- * Main entry point for the spreadsheet processing
+ * Main entry point for the spreadsheet processing.
  * 
- * @param {Array} inQueue Process this array of strategies as "IN" list
- * @param {Array} outQueue Process this array of strategies as "OUT" list
+ * @param {Array} inQueue Process this array of strategies as "IN" list.
+ * @param {Array} outQueue Process this array of strategies as "OUT" list.
  */
 function main(inQueue, outQueue = []) {
     if (!inQueue || !Array.isArray(inQueue)) {
@@ -36,7 +36,8 @@ function main(inQueue, outQueue = []) {
     Strategy.registerArray('IN', inQueue);
     Strategy.registerArray('OUT', outQueue);
 
-    // Get all rows from the sheet
+    // Get all rows from the sheet.
+    // If `outQueue` is not empty, we don't evaluate formulas when we read the sheet.
     const rows = outQueue
         ? sheetsApi.get(configSpreadsheetName) 
         : sheetsApi.get(configSpreadsheetName, 'UNFORMATTED_VALUE');
@@ -44,36 +45,16 @@ function main(inQueue, outQueue = []) {
     // Pre-process sheet headers
     const sheetHeaders = rows[0];
     config.setHeaders(sheetHeaders);
-    const apiHeaders = config.getApiHeaders();
 
     // These formulas should be evaluated only once (on the activation step)
     const excludeEval = [config.getHeaderIndex('col-formula')];
 
     // Iterate over the sheet data
     for (let i = 1; i < rows.length; i++) {
-        // Since we don't evaluate formulas when we read the sheet
-        // we need to make sure that `row` contains values, not formulas. For the
-        // empty outQueue we can ignore this, since in this case we get values.
+        // We need to make sure that `row` contains the values, not formulas.
         let row = outQueue 
             ? sheetsApi.getEvaluated(rows[i], i, excludeEval) 
             : rows[i];
-
-        // Check if we already processed this item
-        const currentDateTime = new Date();
-        if (
-            !onlyInList
-            && !Utils.isDateOlderThanNHours(
-                currentDateTime, 
-                row[ config.getHeaderIndex('col-last-updated') ],
-                config.get('hours-between-updates')
-            )
-        ) {
-            Logger.log(
-                `Row #${i} was already processed (#hours between updates:`
-                    + `${config.get('hours-between-updates')}), skipping`
-            );
-            continue;
-        }
 
         // Process "IN" queue (e.g. AnyAPI and OpenWeatherAPI).
         const inRow = Strategy.process('IN', sheetHeaders, row, config, i);
@@ -85,7 +66,7 @@ function main(inQueue, outQueue = []) {
         }
 
         // If out queue is not empty, then evaluate the activation formula
-        // and process the out queue
+        // and process the out queue.
         if (outQueue) {
             // Process the activation formula
             const formulaIdx = config.getHeaderIndex('col-formula');
@@ -102,9 +83,11 @@ function main(inQueue, outQueue = []) {
 /**
  * Will monitor the weather (and "any api") and sync the LI/IO status with 
  * DV360 accordingly.
+ * 
+ * @param {bool|*} onlyInQueue If true, then no "out queue" will be processed.  
  */
 function monitorWeatherAndSyncWithDV360(onlyInQueue = false) {
-    if ('boolean' === typeof onlyInQueue) {
+    if ('boolean' !== typeof onlyInQueue) {
         onlyInQueue = false;
     }
 

@@ -43,63 +43,6 @@ class Utils {
   }
 
   /**
-   * Get JSON entry value for the provided path (similar to XPath in XML)
-   *
-   * @param {string} path Format "<entity>.<entity>.<array index>.<entity>"
-   * @param {JSON} json JSON or JavaScript Object
-   * @returns {*|null} Value from JSON or null if value does not exist
-   */
-  static getValueFromJSON(path, json) {
-    let tmpJson  = json, 
-        val       = null;
-    
-    for (const part of path.split('.')) {
-      if (part.startsWith('!')) {
-        return Utils.getAgregatedValueFromJSON(part.substring(1), tmpJson);
-      }
-
-      let tmpVal;
-      const intVal = parseInt(part);
-      if (intVal && intVal in tmpJson) {
-        tmpVal = tmpJson[intVal];
-      } else if (tmpJson.hasOwnProperty(part)) {
-        tmpVal = tmpJson[part];
-      } else {
-        break;
-      }
-      
-      const typeOf = typeof tmpVal;
-      if ('string' == typeOf || 'number' == typeOf) {
-        return tmpVal;
-      } else {
-        tmpJson = tmpVal;
-      }
-    }
-
-    return val;
-  }
-
-  /**
-   * Get aggregated value (e.g. MAX, MIN, etc.) from JSON entry values.
-   *
-   * @param {string} aggFunction Aggregation function (now only MIN and MAX function are supported)
-   * @param {JSON} json JSON or JavaScript Object
-   * @returns {number} Agregated value from JSON
-   */
-  static getAgregatedValueFromJSON(aggFunction, json) {
-    switch (aggFunction.toLowerCase()) {
-      case 'min':
-        return Math.min.apply(Math, Object.values(json));
-        
-      case 'max':
-        return Math.max.apply(Math, Object.values(json));
-
-      default:
-        throw `Aggregation function "${aggFunction}" is not supported`;
-    }
-  }
-
-  /**
    * Combine two arrays of the same size to the JSON.
    * 
    * @param {Array} a1 Array for keys

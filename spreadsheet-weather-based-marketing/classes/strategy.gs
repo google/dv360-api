@@ -26,7 +26,6 @@ const STRATEGYQUEUE = {
  * Main class to process the spreadsheet by calling the right processor class.
  */
 class Strategy {
-
     /** 
      * Register a new handler class.
      * 
@@ -95,8 +94,19 @@ class Strategy {
                             processedRow[ lastUpdatedIdx ],
                             config.get('hours-between-updates')
                     )) {
-                        processedRow = STRATEGYQUEUE[queueName][columnName][i]
+                        const output = STRATEGYQUEUE[queueName][columnName][i]
                             .process(header, processedRow, config, idx);
+                        
+                        if (Array.isArray(output)) {
+                            processedRow = output;
+                        } else {
+                            // Extract all "api:" data points (aka "api notation")
+                            const apiHeaders = config.getApiHeaders();
+                            for (let apiHeader in apiHeaders) {
+                                processedRow[ apiHeaders[apiHeader] ] = this
+                                    .getValueFromJSON(apiHeader, output);
+                            }
+                        }
 
                         processedRow[ lastUpdatedIdx ] = this
                             .genLastUpdatedJSON(
@@ -219,6 +229,63 @@ class Strategy {
 
     const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
     return 0 < diffHours && diffHours > (hoursBetweenUpdates - errorDiff);
+  }
+
+  /**
+   * Get JSON entry value for the provided path (similar to XPath in XML)
+   *
+   * @param {string} path Format "<entity>.<entity>.<array index>.<entity>"
+   * @param {JSON} json JSON or JavaScript Object
+   * @returns {*|null} Value from JSON or null if value does not exist
+   */
+  static getValueFromJSON(path, json) {
+    let tmpJson  = json, 
+        val       = null;
+    
+    for (const part of path.split('.')) {
+      if (part.startsWith('!')) {
+        return this.getAgregatedValueFromJSON(part.substring(1), tmpJson);
+      }
+
+      let tmpVal;
+      const intVal = parseInt(part);
+      if (intVal && intVal in tmpJson) {
+        tmpVal = tmpJson[intVal];
+      } else if (tmpJson.hasOwnProperty(part)) {
+        tmpVal = tmpJson[part];
+      } else {
+        break;
+      }
+      
+      const typeOf = typeof tmpVal;
+      if ('string' == typeOf || 'number' == typeOf) {
+        return tmpVal;
+      } else {
+        tmpJson = tmpVal;
+      }
+    }
+
+    return val;
+  }
+
+  /**
+   * Get aggregated value (e.g. MAX, MIN, etc.) from JSON entry values.
+   *
+   * @param {string} aggFunction Aggregation function (now only MIN and MAX function are supported)
+   * @param {JSON} json JSON or JavaScript Object
+   * @returns {number} Agregated value from JSON
+   */
+  static getAgregatedValueFromJSON(aggFunction, json) {
+    switch (aggFunction.toLowerCase()) {
+      case 'min':
+        return Math.min.apply(Math, Object.values(json));
+        
+      case 'max':
+        return Math.max.apply(Math, Object.values(json));
+
+      default:
+        throw `Aggregation function "${aggFunction}" is not supported`;
+    }
   }
 }
 

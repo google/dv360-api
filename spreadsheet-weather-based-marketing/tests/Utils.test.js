@@ -30,49 +30,6 @@ test('encodeParameters', () => {
     expect(Utils.encodeParameters(params)).toBe('foo=1&bar=2');
 });
 
-test('getValueFromJSON', () => {
-    const json = {
-        'foo': [
-            {
-                'foo1': 'bar1'
-            },
-            {
-                'foo2': 'bar2'
-            },
-        ], 
-        'bar': {
-            'bar1': 'foo1',
-        },
-        'agg': {
-            'foo': {
-                'key1': 10,
-                'key2': 100,
-                'key3': 0.8,
-            }
-        }
-    };
-
-    expect(
-        Utils.getValueFromJSON('foo.0.foo1', json)
-    ).toBe('bar1');
-
-    expect(
-        Utils.getValueFromJSON('foo.1.foo2', json)
-    ).toBe('bar2');
-
-    expect(
-        Utils.getValueFromJSON('bar.bar1', json)
-    ).toBe('foo1');
-
-    expect(
-        Utils.getValueFromJSON('agg.foo.!MAX', json)
-    ).toBe(100);
-
-    expect(
-        Utils.getValueFromJSON('agg.foo.!MIN', json)
-    ).toBe(0.8);
-});
-
 test('arraysToJson', () => {
     const a1 = ['foo', 'bar'];
     const a2 = [1, 2];

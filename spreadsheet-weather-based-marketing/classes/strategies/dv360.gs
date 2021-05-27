@@ -59,11 +59,12 @@ class DV360APIStrategy {
             } catch (e) {
                 const secs = 5 * (i + 1);
                 Logger.log(`Error updating DV360 API, retrying in ${secs}s`);
-                Utilities.sleep(1000*secs);
-
+                Logger.log(e);
                 if (i == maxRetries-1) {
                     throw `Failed to update DV360 API after ${maxRetries} retries`;
                 }
+
+                Utilities.sleep(1000*secs);
             }
         }
     }

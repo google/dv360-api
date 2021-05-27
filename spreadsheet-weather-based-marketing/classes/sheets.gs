@@ -57,7 +57,15 @@ class SheetsApi {
   
         return true;
       } catch (e) {
+        const secs = 5 * (i + 1);
+        Logger.log(`Error updating sheet, retrying in ${secs}s`);
         Logger.log(e);
+        
+        if (i == maxRetries-1) {
+            throw `Failed to write to sheet after ${maxRetries} retries`;
+        }
+
+        Utilities.sleep(1000*secs);
       }
     }
 

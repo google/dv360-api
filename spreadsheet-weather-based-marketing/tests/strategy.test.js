@@ -27,39 +27,56 @@ const Config = require('../classes/config.gs');
 const config = new Config();
 
 class StrategyTest {
-    constructor() {
-    }
-
     static process(headers, data) {
         return data;
     }
 }
 
 class StrategyTest2 {
-    constructor() {
-    }
-
     static process(headers, data) {
         return headers;
     }
 }
 
+class StrategyTest3 {
+    static process(headers, data) {
+        return {
+            'foo': {
+                'bar': 'test1',
+            },
+            'foo2': 'test2'
+        };
+    }
+}
+
 const currentDateTime = new Date();
 const spreadSheetData = [
-    ['Api URL', 'Api Headers', 'Api Param: Region', 'Strategy Test', 'Last Updated'],
+    [
+        'Api URL', 
+        'Api Headers', 
+        'Api Param: Region', 
+        'Strategy Test', 
+        'Last Updated',
+        'api:foo.bar',
+        'api:foo2',
+    ],
     [
         'https://any-api-url.test',
         '{"headers":{"apikey": "some-key"}}',
         'param-value',
         '',
-        ''
+        '',
+        '',
+        '',
     ],
     [
         'https://any-api-url.test?q={{Api Param: Region}}',
         '{"headers":{"apikey": "{{Api Param: Region}}"}}',
         'param-value',
         '',
-        `{"StrategyTest2":"${currentDateTime.toISOString()}"}`
+        `{"StrategyTest2":"${currentDateTime.toISOString()}"}`,
+        '',
+        '',
     ]
 ];
 config.setHeaders(spreadSheetData[0]);
@@ -140,4 +157,59 @@ test('Processing of the already precessed stratigy', () => {
     for (let i=0; i<4; i++) {
         expect(processed[i]).toBe(spreadSheetData[2][i]);
     }
+});
+
+test('getValueFromJSON', () => {
+    const json = {
+        'foo': [
+            {
+                'foo1': 'bar1'
+            },
+            {
+                'foo2': 'bar2'
+            },
+        ], 
+        'bar': {
+            'bar1': 'foo1',
+        },
+        'agg': {
+            'foo': {
+                'key1': 10,
+                'key2': 100,
+                'key3': 0.8,
+            }
+        }
+    };
+
+    expect(
+        Strategy.getValueFromJSON('foo.0.foo1', json)
+    ).toBe('bar1');
+
+    expect(
+        Strategy.getValueFromJSON('foo.1.foo2', json)
+    ).toBe('bar2');
+
+    expect(
+        Strategy.getValueFromJSON('bar.bar1', json)
+    ).toBe('foo1');
+
+    expect(
+        Strategy.getValueFromJSON('agg.foo.!MAX', json)
+    ).toBe(100);
+
+    expect(
+        Strategy.getValueFromJSON('agg.foo.!MIN', json)
+    ).toBe(0.8);
+});
+
+test('Processing api outputs', () => {
+    Strategy.register('IN', 'Strategy Test', StrategyTest);
+    Strategy.register('IN', 'Strategy Test', StrategyTest2);
+    Strategy.register('IN', 'Strategy Test', StrategyTest3);
+
+    const processed = Strategy
+        .process('IN', spreadSheetData[0], spreadSheetData[1], config);
+    
+    expect(processed[5]).toBe('test1');
+    expect(processed[6]).toBe('test2');
 });
