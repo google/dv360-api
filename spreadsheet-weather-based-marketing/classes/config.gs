@@ -95,7 +95,7 @@ class Config {
    * @param headers Headers array
    */
   setHeaders(headers) {
-    this.config.headers = headers;
+    this.config.headers = [...headers];
   }
 
   /**
@@ -107,7 +107,7 @@ class Config {
   getHeaderIndex(name) {
     const idx = this.config.headers.indexOf(this.config[name]);
     if (-1 === idx) {
-      throw 'ERROR: Column not found.';
+      throw `ERROR: Column '${name}' not found.`;
     }
 
     return idx;

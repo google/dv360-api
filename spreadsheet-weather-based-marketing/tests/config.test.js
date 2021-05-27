@@ -38,8 +38,8 @@ test('headerOperations', () => {
     expect(config.getHeaderIndex('col-line-item-id')).toBe(0);
     expect(config.getHeaderIndex('col-lon')).toBe(4);
 
-    expect(() => {config.getHeaderIndex('Line Item Id')}
-        ).toThrow('ERROR: Column not found.');
+    expect(() => {config.getHeaderIndex('Line Item Id')})
+        .toThrow("ERROR: Column 'Line Item Id' not found.");
 });
 
 test('getApiHeaders', () => {
