@@ -24,7 +24,7 @@
 
 const Strategy = require('../classes/strategy.gs');
 const Config = require('../classes/config.gs');
-const Utils = require('../classes/utils.gs');
+const config = new Config();
 
 class StrategyTest {
     constructor() {
@@ -45,54 +45,102 @@ class StrategyTest2 {
 }
 
 const currentDateTime = new Date().toISOString();
-
 const spreadSheetData = [
     ['Api URL', 'Api Headers', 'Api Param: Region', 'Strategy Test', 'Last Updated'],
     [
         'https://any-api-url.test',
         '{"headers":{"apikey": "some-key"}}',
         'param-value',
+        '',
         ''
     ],
     [
         'https://any-api-url.test?q={{Api Param: Region}}',
         '{"headers":{"apikey": "{{Api Param: Region}}"}}',
         'param-value',
+        '',
         `{"StrategyTest2":"${currentDateTime}"}`
     ]
 ];
+config.setHeaders(spreadSheetData[0]);
 
+/*
 test('register-and-process', () => {
     Strategy.register('IN', 'Strategy Test', StrategyTest);
-    expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1]))
-        .toBe(spreadSheetData[1]);
+    expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1], config))
+        .toEqual(expect.arrayContaining(spreadSheetData[1]));
 
     Strategy.register('OUT', 'Strategy Test', StrategyTest);
-    expect(Strategy.process('OUT', spreadSheetData[0], spreadSheetData[1]))
-        .toBe(spreadSheetData[1]);
+    expect(Strategy.process('OUT', spreadSheetData[0], spreadSheetData[1], config))
+        .toEqual(expect.arrayContaining(spreadSheetData[1]));
 });
 
 test('registerArray', () => {
+    const config = new Config();
     Strategy.register('IN', 'Strategy Test', StrategyTest);
     Strategy.register('IN', 'Strategy Test', StrategyTest2);
-    expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1]))
+    expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1], config))
         .toBe(spreadSheetData[0]);
 });
 
-test('helper-functions', () => {
-    //jsonParseSafe
-    const json = {'key': 'value'};
-    expect(Strategy.jsonParseSafe(JSON.stringify(json))).toBe(json);
-    expect(Strategy.jsonParseSafe(JSON.stringify(''))).toBe({});
+test('isDateOlderThanNHours', () => {
+    let d1 = new Date();
+    let d2 = '2999-01-01';
+    expect(Strategy.isDateOlderThanNHours(d1, d2, 24)).toBe(false);
+    expect(Strategy.isDateOlderThanNHours(d1, '', 24)).toBe(true);
+
+    d2 = Date(d1 - 23*60*60*1000);
+    expect(Strategy.isDateOlderThanNHours(d1, d2, 24)).toBe(false);
+    expect(Strategy.isDateOlderThanNHours(d1, d2, 0)).toBe(true);
+
+    d2 = new Date(d1 - 25*60*60*1000);
+    expect(Strategy.isDateOlderThanNHours(d1, d2, 24)).toBe(true);
 });
 
-test('updateTime', () => {
-    const config = new Config();
+test('json/date helper functions', () => {
+    // jsonParseSafe
+    const json = {"key": "value", "test": "2019-05-27T07:24:50.750Z"};
+    expect(Strategy.jsonParseSafe(JSON.stringify(json))).toStrictEqual(json);
+    expect(Strategy.jsonParseSafe('', true)).toStrictEqual({});
+
+    // getLastUpdated
+    expect(Strategy.getLastUpdated('key', JSON.stringify(json))).toBe('value');
+
+    // genLastUpdatedJSON
+    const jsonLastUpdated = Strategy.genLastUpdatedJSON('key2', JSON.stringify(json));
+
+    expect(Strategy.getLastUpdated('key', jsonLastUpdated)).toBe('value');
+
+    const dateTime = new Date(Strategy.getLastUpdated('key2', jsonLastUpdated));
+    expect(dateTime.getDate()).toBe(currentDateTime.getDate());
+    expect(dateTime.getMonth()).toBe(currentDateTime.getMonth());
+    expect(dateTime.getFullYear()).toBe(currentDateTime.getFullYear());
+
+    // strategyAlreadyProcessed
+    expect(Strategy.strategyAlreadyProcessed('test', jsonLastUpdated, 1))
+        .toBe(false);
+    expect(Strategy.strategyAlreadyProcessed('test2', jsonLastUpdated, 1))
+        .toBe(false);
+    expect(Strategy.strategyAlreadyProcessed('key2', jsonLastUpdated, 1))
+        .toBe(true);
+    expect(Strategy
+        .strategyAlreadyProcessed('StrategyTest2', spreadSheetData[2][4], 1)
+    ).toBe(true);
+});*/
+
+test('Processing of the already precessed stratigy', () => {
     config.config['hours-between-updates'] = 1;
     
     Strategy.register('IN', 'Strategy Test', StrategyTest);
     Strategy.register('IN', 'Strategy Test', StrategyTest2);
-    expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1], config))
-        .toBe(spreadSheetData[1]);
-});
 
+    expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1], config))
+        .toBe(spreadSheetData[0]);
+    
+    const processed = Strategy
+        .process('IN', spreadSheetData[0], spreadSheetData[2], config);
+    console.log(processed);
+    for (let i=0; i<4; i++) {
+        expect(processed[i]).toBe(spreadSheetData[2][i]);
+    }
+});

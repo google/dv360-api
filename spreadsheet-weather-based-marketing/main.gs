@@ -52,7 +52,7 @@ function main(inQueue, outQueue = []) {
     // Iterate over the sheet data
     for (let i = 1; i < rows.length; i++) {
         // Since we don't evaluate formulas when we read the sheet
-        // we need to make sure that `row` contains values not formulas. For the
+        // we need to make sure that `row` contains values, not formulas. For the
         // empty outQueue we can ignore this, since in this case we get values.
         let row = outQueue 
             ? sheetsApi.getEvaluated(rows[i], i, excludeEval) 

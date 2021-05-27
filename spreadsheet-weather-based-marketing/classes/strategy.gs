@@ -15,7 +15,7 @@
  */
 
 /**
- * As storage which contains all the registered classes
+ * A storage which contains all the registered strategies
  */
 const STRATEGYQUEUE = {
     'IN': {},
@@ -69,15 +69,20 @@ class Strategy {
      * @param headers {array} List of the header columns from the spreadsheet
      * @param data {array} The data from the spreadsheet row.
      * @param idx {int} Row index, for reporting purposes.
-     * @returns {*} The output of the classHandler.process(...)
+     * @returns {Array} The output of the classHandler.process(...), always of
+     *  the same length as the row in the spreadsheet.
      */
     static process(queueName, header, data, config, idx = null) {
+        if (! config) {
+            throw 'ERROR:Strategy.process: Empty `config` variable.';
+        }
+
         for (const columnName in STRATEGYQUEUE[queueName]) {
             if (
                 header.indexOf(columnName) > -1
                 && STRATEGYQUEUE[queueName][columnName]
             ) {
-                // We don't want to change the original array
+                // We don't want to change the original row data
                 let processedRow = [...data];
 
                 // Looking for the strategy
@@ -92,7 +97,7 @@ class Strategy {
                     )) {
                         processedRow = STRATEGYQUEUE[queueName][columnName][i]
                             .process(header, processedRow, config, idx);
-                        
+
                         processedRow[ lastUpdatedIdx ] = this
                             .genLastUpdatedJSON(
                                 strategyName,
@@ -129,12 +134,12 @@ class Strategy {
             lastUpdatedJSON
         );
         const currentDateTime = new Date();
-
-        return ! Utils.isDateOlderThanNHours(
+        
+        return ! this.isDateOlderThanNHours(
             currentDateTime, 
             lastUpdated,
             hoursBetweenUpdates
-        )
+        );
     }
 
     /**
@@ -159,21 +164,65 @@ class Strategy {
         try {
             return JSON.parse(json);
         } catch (e) {
-            console.log('WARNING:Strategy.jsonParseSafe', e);
             return {};
         }
     }
 
+    /**
+     * Generate the correct JSON string with the updated date/time of the last 
+     *  update.
+     * 
+     * @param {string} strategyName Strategy name
+     * @param {string} json JSON string
+     * @returns {string}
+     */
     static genLastUpdatedJSON(strategyName, json) {
         json = this.jsonParseSafe(json);
         json[ strategyName ] = (new Date()).toISOString();
 
-        return json;
+        return JSON.stringify(json);
     }
+
+    /**
+   * Check if the lastUpdated is older then `currentDateTime - hoursBetweenUpdates`
+   * 
+   * @param {string|Date} currentDateTime Current date
+   * @param {string|Date} lastUpdated Date of the last update
+   * @param {int} hoursBetweenUpdates Number of hours between events. If 0, then
+   *  always will return true 
+   * @param {float} errorDiff For apps script scheduler (e.g. daily 8AM-9AM) 
+   *  which doesn't run at the very same hour and minute as the last run
+   * @returns {bool} TRUE if it is older else FALSE
+   */
+  static isDateOlderThanNHours(
+    currentDateTime, 
+    lastUpdated, 
+    hoursBetweenUpdates, 
+    errorDiff = 0.17
+  ) {
+    hoursBetweenUpdates = parseInt(hoursBetweenUpdates);
+    if (! hoursBetweenUpdates) {
+      return true;
+    }
+
+    if (!lastUpdated) {
+      return true;
+    }
+
+    if (! currentDateTime instanceof Date) {
+      currentDateTime = new Date(currentDateTime);
+    }
+
+    if (! (lastUpdated instanceof Date)) {
+      lastUpdated = new Date(lastUpdated);
+    }
+
+    const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
+    return 0 < diffHours && diffHours > (hoursBetweenUpdates - errorDiff);
+  }
 }
 
 // For tests
 if (typeof module !== 'undefined') {
     module.exports = Strategy;
-    const Utils = require('utils.gs');
 }

@@ -105,7 +105,12 @@ class Config {
    * @return {integer} Index, if not exists then -1.
    */
   getHeaderIndex(name) {
-    return this.config.headers.indexOf(this.config[name]);
+    const idx = this.config.headers.indexOf(this.config[name]);
+    if (-1 === idx) {
+      throw 'ERROR: Column not found.';
+    }
+
+    return idx;
   }
 
   /**
