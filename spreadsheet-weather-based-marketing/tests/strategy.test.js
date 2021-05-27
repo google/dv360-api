@@ -44,7 +44,7 @@ class StrategyTest2 {
     }
 }
 
-const currentDateTime = new Date().toISOString();
+const currentDateTime = new Date();
 const spreadSheetData = [
     ['Api URL', 'Api Headers', 'Api Param: Region', 'Strategy Test', 'Last Updated'],
     [
@@ -59,12 +59,12 @@ const spreadSheetData = [
         '{"headers":{"apikey": "{{Api Param: Region}}"}}',
         'param-value',
         '',
-        `{"StrategyTest2":"${currentDateTime}"}`
+        `{"StrategyTest2":"${currentDateTime.toISOString()}"}`
     ]
 ];
 config.setHeaders(spreadSheetData[0]);
+config.config['hours-between-updates'] = 1;
 
-/*
 test('register-and-process', () => {
     Strategy.register('IN', 'Strategy Test', StrategyTest);
     expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1], config))
@@ -76,7 +76,6 @@ test('register-and-process', () => {
 });
 
 test('registerArray', () => {
-    const config = new Config();
     Strategy.register('IN', 'Strategy Test', StrategyTest);
     Strategy.register('IN', 'Strategy Test', StrategyTest2);
     expect(Strategy.process('IN', spreadSheetData[0], spreadSheetData[1], config))
@@ -126,11 +125,9 @@ test('json/date helper functions', () => {
     expect(Strategy
         .strategyAlreadyProcessed('StrategyTest2', spreadSheetData[2][4], 1)
     ).toBe(true);
-});*/
+});
 
 test('Processing of the already precessed stratigy', () => {
-    config.config['hours-between-updates'] = 1;
-    
     Strategy.register('IN', 'Strategy Test', StrategyTest);
     Strategy.register('IN', 'Strategy Test', StrategyTest2);
 
@@ -139,7 +136,7 @@ test('Processing of the already precessed stratigy', () => {
     
     const processed = Strategy
         .process('IN', spreadSheetData[0], spreadSheetData[2], config);
-    console.log(processed);
+    
     for (let i=0; i<4; i++) {
         expect(processed[i]).toBe(spreadSheetData[2][i]);
     }
