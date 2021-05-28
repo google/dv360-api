@@ -32,15 +32,16 @@ class SheetsApi {
   }
 
   /**
-   * Save weather conditions back to the sheet (retry 3 times in case of 
-   * error, if after 3 times still not written, then throw an exception).
+   * Save back to the sheet (retry 3 times in case of error, if after 3 times 
+   * still not written, then throw an exception).
    *
    * @param {!Array<!Array<string|number|boolean>>} rows Rows
    * @param {string} range Range
+   * @param {bool} dontFlush Do not flush the cashe for faster processing
    *
    * @return {boolean} True if successful
    */
-  write(rows, range) {
+  write(rows, range, dontFlush = false) {
     const valueRange = Sheets_v4.newValueRange();
     valueRange.values = rows;
 
@@ -53,9 +54,12 @@ class SheetsApi {
       try {
         Sheets_v4.Spreadsheets.Values
           .update(valueRange, this.spreadsheetId, range, options);
-        SpreadsheetApp.flush();
+        
+        if (!dontFlush) {
+          SpreadsheetApp.flush();
+        }
   
-        return true;
+        break;
       } catch (e) {
         const secs = 5 * (i + 1);
         Logger.log(`Error updating sheet, retrying in ${secs}s`);
@@ -68,8 +72,6 @@ class SheetsApi {
         Utilities.sleep(1000*secs);
       }
     }
-
-    throw `ERROR:sheets: Not able to update the sheet after ${maxRetries} retries.`;
   }
 
   /**

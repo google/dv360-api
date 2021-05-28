@@ -62,7 +62,7 @@ class Strategy {
     }
 
     /** 
-     * Processes the queue and returns the output of the handler class method.
+     * Processes the queue and returns processed array of data.
      * 
      * @param queueName {string} Decides which queue (IN or OUT)
      * @param headers {array} List of the header columns from the spreadsheet
@@ -76,15 +76,18 @@ class Strategy {
             throw 'ERROR:Strategy.process: Empty `config` variable.';
         }
 
+        // Copy, since we don't want to change the original data
+        let processedRow = [...data];
+
+        let strategyFound = false;
         for (const columnName in STRATEGYQUEUE[queueName]) {
             if (
                 header.indexOf(columnName) > -1
                 && STRATEGYQUEUE[queueName][columnName]
             ) {
-                // We don't want to change the original row data
-                let processedRow = [...data];
+                strategyFound = true;
 
-                // Looking for the strategy
+                // Looking for the proper processor
                 for (let i in STRATEGYQUEUE[queueName][columnName]) {
                     const lastUpdatedIdx = config.getHeaderIndex('col-last-updated');
                     const strategyName = STRATEGYQUEUE[queueName][columnName][i].name;
@@ -97,15 +100,9 @@ class Strategy {
                         const output = STRATEGYQUEUE[queueName][columnName][i]
                             .process(header, processedRow, config, idx);
                         
-                        if (Array.isArray(output)) {
-                            processedRow = output;
-                        } else {
-                            // Extract all "api:" data points (aka "api notation")
-                            const apiHeaders = config.getApiHeaders();
-                            for (let apiHeader in apiHeaders) {
-                                processedRow[ apiHeaders[apiHeader] ] = this
-                                    .getValueFromJSON(apiHeader, output);
-                            }
+                        if (output && 'boolean' !== typeof output) {
+                            processedRow = this
+                                .getProcessedRow(output, processedRow, config);
                         }
 
                         processedRow[ lastUpdatedIdx ] = this
@@ -113,17 +110,48 @@ class Strategy {
                                 strategyName,
                                 processedRow[ lastUpdatedIdx ]
                             );
+                    } else {
+                        console.log(
+                            `LOG:Strategy.process: ${strategyName} was already`
+                            + ` processed during last`
+                            + ` ${config.get('hours-between-updates')} hours`
+                        );
                     }
-                }
-                
-                return processedRow;
+                }    
             }
         }
 
-        console.log(
-            'LOG:Strategy.process: No handler class is found, nothing to process.', 
-            queueName, header, data, STRATEGYQUEUE
-        );
+        if (! strategyFound) {
+            console.log(
+                'LOG:Strategy.process: No handler class is found, nothing to process.', 
+                queueName, header, data, STRATEGYQUEUE
+            );
+        }
+
+        return processedRow;
+    }
+
+    /**
+     * Form an array according to the processor output
+     * 
+     * @param {Array|Objecct} output Array or JSON object
+     * @param {Array} processedRow Row data
+     * @param {Config} config Configuration handling
+     * @returns {Array} Processed data
+     */
+    static getProcessedRow(output, processedRow, config) {
+        if (Array.isArray(output)) {
+            processedRow = output;
+        } else {
+            // Extract all "api:" data points (aka "api notation")
+            const apiHeaders = config.getApiHeaders();
+            for (let apiHeader in apiHeaders) {
+                processedRow[ apiHeaders[apiHeader] ] = this
+                    .getValueFromJSON(apiHeader, output);
+            }
+        }
+
+        return processedRow;
     }
 
     /**
