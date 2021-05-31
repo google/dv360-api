@@ -15,12 +15,18 @@
  */
 
 /**
- * A storage which contains all the registered strategies
+ * A storage which contains all the registered strategies.
  */
 const STRATEGYQUEUE = {
     'IN': {},
     'OUT': {},
 };
+
+/**
+ * A storage which contains all error messages.
+ */
+const STRATEGYERRORS = [];
+
 
 /**
  * Main class to process the spreadsheet by calling the right processor class.
@@ -35,7 +41,7 @@ class Strategy {
      * @returns {void}
      */
     static register(queueName, fieldName, classHandler) {
-        if (! (fieldName in STRATEGYQUEUE[queueName])) {
+        if (!(fieldName in STRATEGYQUEUE[queueName])) {
             STRATEGYQUEUE[queueName][fieldName] = [];
         }
 
@@ -51,7 +57,7 @@ class Strategy {
      * @returns {void}
      */
     static registerArray(queueName, handlers) {
-        if (! handlers) {
+        if (!handlers) {
             return;
         }
 
@@ -72,7 +78,7 @@ class Strategy {
      *  the same length as the row in the spreadsheet.
      */
     static process(queueName, header, data, config, idx = null) {
-        if (! config) {
+        if (!config) {
             throw 'ERROR:Strategy.process: Empty `config` variable.';
         }
 
@@ -93,22 +99,22 @@ class Strategy {
                     const strategyName = STRATEGYQUEUE[queueName][columnName][i].name;
 
                     if (!this.strategyAlreadyProcessed(
-                            strategyName,
-                            processedRow[ lastUpdatedIdx ],
-                            config.get('hours-between-updates')
+                        strategyName,
+                        processedRow[lastUpdatedIdx],
+                        config.get('hours-between-updates')
                     )) {
                         const output = STRATEGYQUEUE[queueName][columnName][i]
                             .process(header, processedRow, config, idx);
-                        
+
                         if (output && 'boolean' !== typeof output) {
                             processedRow = this
                                 .getProcessedRow(output, processedRow, config);
                         }
 
-                        processedRow[ lastUpdatedIdx ] = this
+                        processedRow[lastUpdatedIdx] = this
                             .genLastUpdatedJSON(
                                 strategyName,
-                                processedRow[ lastUpdatedIdx ]
+                                processedRow[lastUpdatedIdx]
                             );
                     } else {
                         console.log(
@@ -117,13 +123,13 @@ class Strategy {
                             + ` ${config.get('hours-between-updates')} hours`
                         );
                     }
-                }    
+                }
             }
         }
 
-        if (! strategyFound) {
+        if (!strategyFound) {
             console.log(
-                'LOG:Strategy.process: No handler class is found, nothing to process.', 
+                'LOG:Strategy.process: No handler class is found, nothing to process.',
                 queueName, header, data, STRATEGYQUEUE
             );
         }
@@ -146,7 +152,7 @@ class Strategy {
             // Extract all "api:" data points (aka "api notation")
             const apiHeaders = config.getApiHeaders();
             for (let apiHeader in apiHeaders) {
-                processedRow[ apiHeaders[apiHeader] ] = this
+                processedRow[apiHeaders[apiHeader]] = this
                     .getValueFromJSON(apiHeader, output);
             }
         }
@@ -163,8 +169,8 @@ class Strategy {
      * @returns {bool}
      */
     static strategyAlreadyProcessed(
-        strategyName, 
-        lastUpdatedJSON, 
+        strategyName,
+        lastUpdatedJSON,
         hoursBetweenUpdates
     ) {
         const lastUpdated = this.getLastUpdated(
@@ -172,9 +178,9 @@ class Strategy {
             lastUpdatedJSON
         );
         const currentDateTime = new Date();
-        
-        return ! this.isDateOlderThanNHours(
-            currentDateTime, 
+
+        return !this.isDateOlderThanNHours(
+            currentDateTime,
             lastUpdated,
             hoursBetweenUpdates
         );
@@ -216,105 +222,101 @@ class Strategy {
      */
     static genLastUpdatedJSON(strategyName, json) {
         json = this.jsonParseSafe(json);
-        json[ strategyName ] = (new Date()).toISOString();
+        json[strategyName] = (new Date()).toISOString();
 
         return JSON.stringify(json);
     }
 
     /**
-   * Check if the lastUpdated is older then `currentDateTime - hoursBetweenUpdates`
-   * 
-   * @param {string|Date} currentDateTime Current date
-   * @param {string|Date} lastUpdated Date of the last update
-   * @param {int} hoursBetweenUpdates Number of hours between events. If 0, then
-   *  always will return true 
-   * @param {float} errorDiff For apps script scheduler (e.g. daily 8AM-9AM) 
-   *  which doesn't run at the very same hour and minute as the last run
-   * @returns {bool} TRUE if it is older else FALSE
-   */
-  static isDateOlderThanNHours(
-    currentDateTime, 
-    lastUpdated, 
-    hoursBetweenUpdates, 
-    errorDiff = 0.17
-  ) {
-    hoursBetweenUpdates = parseInt(hoursBetweenUpdates);
-    if (! hoursBetweenUpdates) {
-      return true;
+     * Check if the lastUpdated is older then `currentDateTime - hoursBetweenUpdates`
+     * 
+     * @param {string|Date} currentDateTime Current date
+     * @param {string|Date} lastUpdated Date of the last update
+     * @param {int} hoursBetweenUpdates Number of hours between events. If 0, then
+     *  always will return true 
+     * @param {float} errorDiff For apps script scheduler (e.g. daily 8AM-9AM) 
+     *  which doesn't run at the very same hour and minute as the last run
+     * @returns {bool} TRUE if it is older else FALSE
+     */
+    static isDateOlderThanNHours(
+        currentDateTime,
+        lastUpdated,
+        hoursBetweenUpdates,
+        errorDiff = 0.17
+    ) {
+        hoursBetweenUpdates = parseInt(hoursBetweenUpdates);
+        if (!hoursBetweenUpdates || !lastUpdated) {
+            return true;
+        }
+
+        if (!currentDateTime instanceof Date) {
+            currentDateTime = new Date(currentDateTime);
+        }
+
+        if (!(lastUpdated instanceof Date)) {
+            lastUpdated = new Date(lastUpdated);
+        }
+
+        const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
+        return 0 < diffHours && diffHours > (hoursBetweenUpdates - errorDiff);
     }
 
-    if (!lastUpdated) {
-      return true;
+    /**
+     * Get JSON entry value for the provided path (similar to XPath in XML)
+     *
+     * @param {string} path Format "<entity>.<entity>.<array index>.<entity>"
+     * @param {JSON} json JSON or JavaScript Object
+     * @returns {*|null} Value from JSON or null if value does not exist
+     */
+    static getValueFromJSON(path, json) {
+        let tmpJson = json,
+            val = null;
+
+        for (const part of path.split('.')) {
+            if (part.startsWith('!')) {
+                return this.getAgregatedValueFromJSON(part.substring(1), tmpJson);
+            }
+
+            let tmpVal;
+            const intVal = parseInt(part);
+            if (intVal && intVal in tmpJson) {
+                tmpVal = tmpJson[intVal];
+            } else if (tmpJson.hasOwnProperty(part)) {
+                tmpVal = tmpJson[part];
+            } else {
+                break;
+            }
+
+            const typeOf = typeof tmpVal;
+            if ('string' == typeOf || 'number' == typeOf) {
+                return tmpVal;
+            } else {
+                tmpJson = tmpVal;
+            }
+        }
+
+        return val;
     }
 
-    if (! currentDateTime instanceof Date) {
-      currentDateTime = new Date(currentDateTime);
+    /**
+     * Get aggregated value (e.g. MAX, MIN, etc.) from JSON entry values.
+     *
+     * @param {string} aggFunction Aggregation function (now only MIN and MAX function are supported)
+     * @param {JSON} json JSON or JavaScript Object
+     * @returns {number} Agregated value from JSON
+     */
+    static getAgregatedValueFromJSON(aggFunction, json) {
+        switch (aggFunction.toLowerCase()) {
+            case 'min':
+                return Math.min.apply(Math, Object.values(json));
+
+            case 'max':
+                return Math.max.apply(Math, Object.values(json));
+
+            default:
+                throw `Aggregation function "${aggFunction}" is not supported`;
+        }
     }
-
-    if (! (lastUpdated instanceof Date)) {
-      lastUpdated = new Date(lastUpdated);
-    }
-
-    const diffHours = (currentDateTime - lastUpdated) / 1000 / 60 / 60;
-    return 0 < diffHours && diffHours > (hoursBetweenUpdates - errorDiff);
-  }
-
-  /**
-   * Get JSON entry value for the provided path (similar to XPath in XML)
-   *
-   * @param {string} path Format "<entity>.<entity>.<array index>.<entity>"
-   * @param {JSON} json JSON or JavaScript Object
-   * @returns {*|null} Value from JSON or null if value does not exist
-   */
-  static getValueFromJSON(path, json) {
-    let tmpJson  = json, 
-        val       = null;
-    
-    for (const part of path.split('.')) {
-      if (part.startsWith('!')) {
-        return this.getAgregatedValueFromJSON(part.substring(1), tmpJson);
-      }
-
-      let tmpVal;
-      const intVal = parseInt(part);
-      if (intVal && intVal in tmpJson) {
-        tmpVal = tmpJson[intVal];
-      } else if (tmpJson.hasOwnProperty(part)) {
-        tmpVal = tmpJson[part];
-      } else {
-        break;
-      }
-      
-      const typeOf = typeof tmpVal;
-      if ('string' == typeOf || 'number' == typeOf) {
-        return tmpVal;
-      } else {
-        tmpJson = tmpVal;
-      }
-    }
-
-    return val;
-  }
-
-  /**
-   * Get aggregated value (e.g. MAX, MIN, etc.) from JSON entry values.
-   *
-   * @param {string} aggFunction Aggregation function (now only MIN and MAX function are supported)
-   * @param {JSON} json JSON or JavaScript Object
-   * @returns {number} Agregated value from JSON
-   */
-  static getAgregatedValueFromJSON(aggFunction, json) {
-    switch (aggFunction.toLowerCase()) {
-      case 'min':
-        return Math.min.apply(Math, Object.values(json));
-        
-      case 'max':
-        return Math.max.apply(Math, Object.values(json));
-
-      default:
-        throw `Aggregation function "${aggFunction}" is not supported`;
-    }
-  }
 }
 
 // For tests
