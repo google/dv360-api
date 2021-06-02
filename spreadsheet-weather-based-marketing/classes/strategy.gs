@@ -317,6 +317,25 @@ class Strategy {
                 throw `Aggregation function "${aggFunction}" is not supported`;
         }
     }
+
+    /**
+     * Add error message to the list of the errors.
+     * 
+     * @param {string} msg Error message.
+     */
+    static addErrorMessage(msg) {
+        console.log('ERROR:addErrorMessage: %s', msg);
+        STRATEGYERRORS.push(msg);
+    }
+
+    /**
+     * Returns a formated list of error messages.
+     * 
+     * @returns {string}
+     */
+    static getErrorMessages() {
+        return STRATEGYERRORS.join("\n");
+    }
 }
 
 // For tests

@@ -19,9 +19,9 @@ const config = new Config();
 
 // Init globally used variables
 const configSpreadsheetId = config.get('spreadsheet-id')
-  || SpreadsheetApp.getActiveSpreadsheet().getId();
-const configSpreadsheetName = config.get('sheet-name') 
-  || "Triggers";
+    || SpreadsheetApp.getActiveSpreadsheet().getId();
+const configSpreadsheetName = config.get('sheet-name')
+    || "Triggers";
 
 /**
  * Main entry point for the spreadsheet processing.
@@ -30,8 +30,12 @@ const configSpreadsheetName = config.get('sheet-name')
  * @param {Array} outQueue Process this array of strategies as "OUT" list.
  */
 function main(inQueue, outQueue = []) {
-    if (!inQueue || !Array.isArray(inQueue) || !inQueue.length) {
-        throw 'ERROR:main: Please specify "inQueue" (should be non empty array).';
+    if (
+        (!inQueue || !Array.isArray(inQueue) || !inQueue.length)
+        && (!outQueue || !Array.isArray(outQueue) || !outQueue.length)
+    ) {
+        throw 'ERROR:main: Please specify "inQueue" or "outQueue"'
+            + ' (should be at least one non empty array).';
     }
 
     const sheetsApi = new SheetsApi(configSpreadsheetId);
@@ -44,10 +48,8 @@ function main(inQueue, outQueue = []) {
 
     // Get all rows from the sheet.
     // If `outQueue` is not empty, we don't evaluate formulas when we read the sheet.
-    const rows = outQueue && outQueue.length
-        ? sheetsApi.get(configSpreadsheetName) 
-        : sheetsApi.get(configSpreadsheetName, 'UNFORMATTED_VALUE');
-    
+    const rows = sheetsApi.get(configSpreadsheetName);
+
     // Pre-process sheet headers
     const sheetHeaders = rows[0];
     config.setHeaders(sheetHeaders);
@@ -63,48 +65,57 @@ function main(inQueue, outQueue = []) {
         Logger.log(`LOG:main: Processing row #${i}`);
 
         // We need to make sure that `row` contains the values, not formulas.
-        let row = outQueue && outQueue.length 
-            ? sheetsApi.getEvaluated(rows[i], i, excludeEval) 
-            : rows[i];
+        let row = sheetsApi.getEvaluated(rows[i], i, excludeEval);
 
-        // Process "IN" queue (e.g. AnyAPI and OpenWeatherAPI).
-        let newRow = Strategy.process('IN', sheetHeaders, row, config, i);
-        
-        // If nothing changed, then don't write back to the sheet
-        if (JSON.stringify(newRow) !== JSON.stringify(row)) {
-            sheetsApi.write(
-                [newRow], 
-                configSpreadsheetName + '!A' + (i + 1),
-                !(outQueue && outQueue.length)
-            );
-
-            row = [...newRow];
+        if (inQueue && inQueue.length) {
+            // Process "IN" queue (e.g. AnyAPI and OpenWeatherAPI).
+            let newRow = Strategy.process('IN', sheetHeaders, row, config, i);
+    
+            // If nothing changed, then don't write back to the sheet
+            if (JSON.stringify(newRow) !== JSON.stringify(row)) {
+                sheetsApi.write(
+                    [newRow],
+                    configSpreadsheetName + '!A' + (i + 1),
+                    !(outQueue && outQueue.length)
+                );
+    
+                row = [...newRow];
+            }
         }
 
         // If out queue is not empty, then evaluate the activation formula
         // and process the out queue.
         if (outQueue && outQueue.length) {
-            newRow[ formulaIdx ] = sheetsApi.forceFormulasEval(i + 1, formulaIdx + 1);
+            const formulaValue = row[formulaIdx];
+            row[formulaIdx] = sheetsApi.forceFormulasEval(i + 1, formulaIdx + 1);
 
             // Run all OUT processors (e.g. change DV360 status)
-            newRow = Strategy.process('OUT', sheetHeaders, newRow, config);
-            newRow[ formulaIdx ] = row[ formulaIdx ];
+            newRow = Strategy.process('OUT', sheetHeaders, row, config, i);
+            newRow[formulaIdx] = formulaValue;
 
             // If nothing changed, then don't write back to the sheet
             if (JSON.stringify(newRow) !== JSON.stringify(row)) {
                 sheetsApi.write(
-                    [newRow], 
-                    configSpreadsheetName + '!A' + (i + 1), 
+                    [newRow],
+                    configSpreadsheetName + '!A' + (i + 1),
                     true // fast write, wo/flushing the spreadsheet cache
                 );
+
+                row = newRow;
             }
         }
-        
-        Utils.logRowData(newRow);
+
+        Utils.logRowData(row);
     }
 
     // Save all cached write requests
     SpreadsheetApp.flush();
+
+    // Check if there are errors to report
+    const msgs = Strategy.getErrorMessages();
+    if (msgs) {
+        throw msgs;
+    }
 }
 
 /**
@@ -120,13 +131,13 @@ function monitorWeatherAndSyncWithDV360(onlyInQueue = false) {
 
     // Register sheet processors
     const inQueue = [
-        {[config.get('col-lat')]: OpenWeatherAPIStrategy},
-        {[config.get('col-api-url')]: INAnyAPIStrategy},
+        { [config.get('col-lat')]: OpenWeatherAPIStrategy },
+        { [config.get('col-api-url')]: INAnyAPIStrategy },
     ];
 
-    const outQueue = onlyInQueue 
-        ? [] 
-        : [{[config.get('col-advertiser-id')]: DV360APIStrategy}];
+    const outQueue = onlyInQueue
+        ? []
+        : [{ [config.get('col-advertiser-id')]: DV360APIStrategy }];
 
     return main(inQueue, outQueue);
 }
@@ -150,5 +161,18 @@ function monitorAnyApiAndSyncWithDV360() {
  * Only sync wth DV360.
  */
 function syncWithDV360() {
-    return main([{[config.get('col-advertiser-id')]: DV360APIStrategy}]);
+    return main(
+        [], 
+        [{ [config.get('col-advertiser-id')]: DV360APIStrategy }]
+    );
+}
+
+/**
+ * Check if the spreadsheet is compliant.
+ */
+function watchdog() {
+    return main(
+        [ { [config.get('col-formula')]: FormulaWatchdogStrategy }, ],
+        [ { [config.get('col-advertiser-id')]: DV360WatchdogStrategy }, ]
+    );
 }

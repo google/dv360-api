@@ -213,3 +213,9 @@ test('Processing api outputs', () => {
     expect(processed[5]).toBe('test1');
     expect(processed[6]).toBe('test2');
 });
+
+test('Error messages', () => {
+    Strategy.addErrorMessage('Test 1');
+    Strategy.addErrorMessage('Test 2');
+    expect(Strategy.getErrorMessages()).toBe("Test 1\nTest 2");
+});

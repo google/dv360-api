@@ -66,11 +66,48 @@ class AnyAPI {
 
         const cacheKey = this.url + '|' + JSON.stringify(this.headers);
         if (! (cacheKey in ANYAPICACHE)) {
-            const res = UrlFetchApp.fetch(this.url, JSON.parse(this.headers));
-            ANYAPICACHE[cacheKey] = JSON.parse(res.getContentText());
+            ANYAPICACHE[cacheKey] = this
+                .fetchWithRetries(this.url, JSON.parse(this.headers));
         }
 
         return ANYAPICACHE[cacheKey];
+    }
+
+    /**
+     * Returns the result of the http request or throws error if not able to 
+     *  fetch after `maxRetries` retries.
+     * 
+     * @param {string} url Url
+     * @param {Object} params Additional HTTP params
+     * @param {int} maxRetries Number of retries
+     * @returns {Object} JSON
+     */
+    fetchWithRetries(url, params, maxRetries = 3) {
+        for (let i=0; i<maxRetries; i++) {
+            try {
+                const res = UrlFetchApp.fetch(url, params);
+                if(200 != res.getResponseCode() && 204 != res.getResponseCode()) {
+                    Logger.log(
+                        'AnyAPI:fetchWithRetries: Failed to fetch url "%s",'
+                            + ' params "%s", HTTP code: "%s", context: "%s"',
+                        url, params, res.getResponseCode(), res.getContentText()
+                    );
+
+                    throw '';
+                } else {
+                    return JSON.parse(res.getContentText());
+                }
+            } catch (e) {
+                const secs = 5 * (i + 1);
+                Logger.log(`Error fetching the API, retrying in ${secs}s`);
+                Logger.log(e);
+                if (i == maxRetries-1) {
+                    throw `Failed to fetch API after ${maxRetries} retries`;
+                }
+
+                Utilities.sleep(1000*secs);
+            }
+        }
     }
 
     /**

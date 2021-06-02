@@ -25,7 +25,7 @@ class DV360WatchdogStrategy {
      * @param {Array} data Spreadsheet row data
      * @param {Config} config Config object
      * @param {int} rowIdx Row index (for reporting purposes)
-     * @returns {Object} JSON output
+     * @returns {bool} Status
      */
     static process(headers, data, config, rowIdx) {
         const activate = data[ config.getHeaderIndex('col-formula') ],
@@ -40,7 +40,8 @@ class DV360WatchdogStrategy {
             );
         
         if ('' === activate) {
-            throw `WATCHDOG: ERROR: Activation formula is empty! Row ${rowIdx+1}`;
+            // Empty formula, nothing to do
+            return false;
         }
 
         if (
@@ -51,7 +52,7 @@ class DV360WatchdogStrategy {
             )
         ) {
             // Nothing to check, since no DV360 entity is not specifed
-            return;
+            return false;
         }
         
         const auth     = new Auth(config.get('service-account'));
@@ -88,9 +89,13 @@ class DV360WatchdogStrategy {
         }
 
         if (activate !== dv360StatusActive) {
-            throw `WATCHDOG: ERROR: DV360 status is "${dv360StatusActive}"`
+            Strategy.addErrorMessage(
+                `DV360 status is "${dv360StatusActive}"`
                 + ` but spreadsheet status is "${activate}" (row:${rowIdx+1},`
                 + ` IO:${insertionOrderId}, LI:${lineItemId})`
+            );
         }
+
+        return true;
     }
 }
