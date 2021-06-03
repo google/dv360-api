@@ -28,10 +28,10 @@ class DV360APIStrategy {
     static process(headers, data, config) {
         const activate = data[ config.getHeaderIndex('col-formula') ],
             lineItemId = parseInt(
-                data[ config.getHeaderIndex('col-line-item-id') ]
+                data[ config.getHeaderIndex('col-line-item-id', '') ]
             ),
             insertionOrderId = parseInt(
-                data[ config.getHeaderIndex('col-insertion-order-id') ]
+                data[ config.getHeaderIndex('col-insertion-order-id', '') ]
             ),
             advertiserId = parseInt(
                 data[ config.getHeaderIndex('col-advertiser-id') ]

@@ -149,6 +149,9 @@ class Strategy {
         if (Array.isArray(output)) {
             processedRow = output;
         } else {
+            // This is the JSON case
+            output = JSON.parse(output);
+
             // Extract all "api:" data points (aka "api notation")
             const apiHeaders = config.getApiHeaders();
             for (let apiHeader in apiHeaders) {

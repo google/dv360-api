@@ -27,7 +27,7 @@ class INAnyAPIStrategy {
      */
     static process(headers, data, config) {
         const url = data[ config.getHeaderIndex('col-api-url') ];
-        const apiHttpHeaders = data[ config.getHeaderIndex('col-api-headers') ];
+        const apiHttpHeaders = data[ config.getHeaderIndex('col-api-headers', null) ];
         const anyApi = new AnyAPI(url, apiHttpHeaders);
         
         const params = Utils.arraysToJson(headers, data);

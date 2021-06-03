@@ -93,9 +93,9 @@ class AnyAPI {
                         url, params, res.getResponseCode(), res.getContentText()
                     );
 
-                    throw '';
+                    throw 'AnyAPI:fetchWithRetries: Failed to fetch url';
                 } else {
-                    return JSON.parse(res.getContentText());
+                    return res.getContentText();
                 }
             } catch (e) {
                 const secs = 5 * (i + 1);

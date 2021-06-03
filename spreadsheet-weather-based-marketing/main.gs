@@ -143,9 +143,16 @@ function monitorWeatherAndSyncWithDV360(onlyInQueue = false) {
 }
 
 /**
- * Will monitor the weather (and "any api"). It will NOT sync with the DV360!
+ * Will check the weather (and "any api"). It will NOT sync with the DV360!
  */
 function checkWeather() {
+    return monitorWeatherAndSyncWithDV360(true);
+}
+
+/**
+ * Will check the "any api" (and the weather). It will NOT sync with the DV360!
+ */
+function checkApi() {
     return monitorWeatherAndSyncWithDV360(true);
 }
 
