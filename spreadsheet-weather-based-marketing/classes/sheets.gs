@@ -49,7 +49,7 @@ class SheetsApi {
       valueInputOption: "USER_ENTERED",
     };
 
-    const maxRetries = 3;
+    const maxRetries = 5;
     for (let i=0; i<maxRetries; i++) {
       try {
         Sheets_v4.Spreadsheets.Values
@@ -62,13 +62,13 @@ class SheetsApi {
         break;
       } catch (e) {
         const secs = 5 * (i + 1);
-        Logger.log(`Error updating sheet, retrying in ${secs}s`);
         Logger.log(e);
         
         if (i == maxRetries-1) {
-            throw `Failed to write to sheet after ${maxRetries} retries`;
+          throw `Failed to write to sheet after ${maxRetries} retries`;
         }
-
+        
+        Logger.log(`Error updating sheet, retrying in ${secs}s`);
         Utilities.sleep(1000*secs);
       }
     }
