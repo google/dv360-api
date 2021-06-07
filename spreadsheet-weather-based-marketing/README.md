@@ -18,7 +18,7 @@ Here you will find information on:
 2. Copy contents of the [appsscript.json](appsscript.json) file to your
     [manifest file](https://developers.google.com/apps-script/concepts/manifests). 
     (Note: first you should [enable](https://developers.google.com/apps-script/concepts/manifests#editing_a_manifest) the file in the project settings).
-3. Add your OpenWeather API key ([get the key here](https://openweathermap.org/appid)). In the main code part ([all-in-one.js.txt](all-in-one.js.txt)) find a configuration variable "open-weather-api-key" and paste there your OpenWeather API key (your code should look like it's shown below, but with your own key).
+3. (If you want to use OpenWeather API) Add your OpenWeather API key ([get the key here](https://openweathermap.org/appid)): in the main code part ([all-in-one.js.txt](all-in-one.js.txt)) find a configuration variable "open-weather-api-key" and paste there your OpenWeather API key (your code should look like it's shown below, but with your own key).
 ```
   ...
   'open-weather-api-key': '202cb962ac59075b964b07152d234b70',
