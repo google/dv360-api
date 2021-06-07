@@ -98,7 +98,7 @@ function main(inQueue, outQueue = []) {
                 sheetsApi.write(
                     [newRow],
                     configSpreadsheetName + '!A' + (i + 1),
-                    true // fast write, wo/flushing the spreadsheet cache
+                    true
                 );
 
                 row = newRow;
@@ -119,8 +119,7 @@ function main(inQueue, outQueue = []) {
 }
 
 /**
- * Will monitor the weather (and "any api") and sync the LI/IO status with 
- * DV360 accordingly.
+ * Will monitor the weather and sync the LI/IO status with DV360 accordingly.
  * 
  * @param {bool|*} onlyInQueue If true, then no "out queue" will be processed.  
  */
@@ -132,7 +131,6 @@ function monitorWeatherAndSyncWithDV360(onlyInQueue = false) {
     // Register sheet processors
     const inQueue = [
         { [config.get('col-lat')]: OpenWeatherAPIStrategy },
-        { [config.get('col-api-url')]: INAnyAPIStrategy },
     ];
 
     const outQueue = onlyInQueue
@@ -143,25 +141,39 @@ function monitorWeatherAndSyncWithDV360(onlyInQueue = false) {
 }
 
 /**
- * Will check the weather (and "any api"). It will NOT sync with the DV360!
+ * Will check the weather. It will NOT sync with the DV360!
  */
 function checkWeather() {
     return monitorWeatherAndSyncWithDV360(true);
 }
 
 /**
- * Will check the "any api" (and the weather). It will NOT sync with the DV360!
+ * Will check the "any api". It will NOT sync with the DV360!
  */
 function checkApi() {
-    return monitorWeatherAndSyncWithDV360(true);
+    return monitorAnyApiAndSyncWithDV360(true);
 }
 
 /**
- * Added to support naming convension. Will monitor "any api" (and the weather) 
- * and sync the LI/IO status with DV360 accordingly.
+ * Will monitor "any api" and sync the LI/IO status with DV360 accordingly.
+ * 
+ * @param {bool|*} onlyInQueue If true, then no "out queue" will be processed.  
  */
-function monitorAnyApiAndSyncWithDV360() {
-    return monitorWeatherAndSyncWithDV360();
+function monitorAnyApiAndSyncWithDV360(onlyInQueue = false) {
+    if ('boolean' !== typeof onlyInQueue) {
+        onlyInQueue = false;
+    }
+
+    // Register sheet processors
+    const inQueue = [
+        { [config.get('col-api-url')]: INAnyAPIStrategy },
+    ];
+
+    const outQueue = onlyInQueue
+        ? []
+        : [{ [config.get('col-advertiser-id')]: DV360APIStrategy }];
+
+    return main(inQueue, outQueue);
 }
 
 /**
