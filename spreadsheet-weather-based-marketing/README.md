@@ -103,7 +103,7 @@ This section contains a list of default names of the columns and their purpose:
 * 'Latitude' (mandatory, config class variable `col-lat`): Geo coordinates. Will be used to fetch the weather conditions for the row from the sheet.
 * 'Longitude' (mandatory, config class variable `col-lon`): Geo coordinates. Will be used to fetch the weather conditions for the row from the sheet.
 * 'Activation Formula' (optional, config class variable `col-formula`): This is a custom formula. It's value is used to activate or deactivate the DV360 entities (e.g. Line Items). If the formula returns `TRUE`, then the DV360 entity will be activated, else (cell contains `FALSE`) it will be paused.
-* 'Last Updated' (updated by the script, config class variable `col-last-updated`): This column will be updated automatically by the script and contain the last timestamp when the DV360 entity status was updated.
+* 'Last Updated' (updated by the script, config class variable `col-last-updated`): This column will be updated automatically by the script and contain the timestamps of when this row was last processed by a particular data processor (e.g. when weather data was last fetched or when the row's status was synced with DV360 API).
 
 ### 'api:*' Notation (API data points)
 These are the columns which will be populated by the script according to the fetched API output JSON.
