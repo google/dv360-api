@@ -101,13 +101,18 @@ class Config {
   /**
    * Returns the index of the header entity
    * 
-   * @param {string} name Header notation (from `this.config`) we are looking for
+   * @param {string} name Header notation (from `this.config`) we are looking for.
+   * @param {*} defaultValue Default value if the entry is not found.
    * @return {integer} Index, if not exists then -1.
    */
-  getHeaderIndex(name) {
+  getHeaderIndex(name, defaultValue) {
     const idx = this.config.headers.indexOf(this.config[name]);
     if (-1 === idx) {
-      throw `ERROR: Column '${name}' not found.`;
+      if ('undefined' === typeof defaultValue) {
+        throw `ERROR: Column '${name}' not found.`;
+      }
+
+      return defaultValue;
     }
 
     return idx;
