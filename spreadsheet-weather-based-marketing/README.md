@@ -6,12 +6,14 @@ YouTube Link: [youtu.be/LPvYat0U9TI](https://youtu.be/LPvYat0U9TI).
 
 ## Intro
 Here you will find information on:
-* How to install the Weather Based Marketing Spreadsheet
-* How to configure your DV360 campaign fast
-* Tweaking your Weather Based Marketing Spreadsheet
-* How to configure different weather triggers
+* How to install the Weather Based Marketing Spreadsheet.
+* How to configure your DV360 campaign fast.
+* How to configure your weather based Google Ads campaign.
+* Tweaking your Weather Based Marketing Spreadsheet.
+* How to configure different weather triggers.
+* How to use other APIs beyond weather.
 
-## Install (video tutorial can be found below)
+## Install (video tutorials can be found below)
 1. Copy contents of the [all-in-one.js.txt](all-in-one.js.txt) file to your
     [apps script](https://developers.google.com/apps-script/guides/sheets#get_started) project that connected to the spreadsheet 
     (usually the default file is called "Code.gs").
