@@ -130,6 +130,8 @@ Examples (you can check the Openweather API [JSON here](https://openweathermap.o
 ### Activation formula
 Activation formula implements the weather conditions which should trigger the marketing action (in our case activate or deactivate the DV360 entities).
 
+If the "Activation formula" value is **TRUE**, then the corresponding DV360 *Line Item* (or *Insertion Order* or Google Ads *Ad Group*) will be **activated**, if it's **FALSE** it will be **paused**.
+
 Now you know how to extract the needed data points from the weather JSON. Based on these data points you can write your activation formulas.
 
 Here are several examples for the activation formula:
