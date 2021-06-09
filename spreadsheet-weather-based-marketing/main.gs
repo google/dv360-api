@@ -62,7 +62,7 @@ function main(inQueue, outQueue = []) {
 
     // Iterate over the sheet data
     for (let i = 1; i < rows.length; i++) {
-        Logger.log(`LOG:main: Processing row #${i}`);
+        Logger.log(`LOG:main: Processing row #${i+1}`);
 
         // We need to make sure that `row` contains the values, not formulas.
         let row = sheetsApi.getEvaluated(rows[i], i, excludeEval);
