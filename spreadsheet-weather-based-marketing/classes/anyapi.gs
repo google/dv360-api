@@ -99,12 +99,12 @@ class AnyAPI {
                 }
             } catch (e) {
                 const secs = 5 * (i + 1);
-                Logger.log(`Error fetching the API, retrying in ${secs}s`);
                 Logger.log(e);
                 if (i == maxRetries-1) {
                     throw `Failed to fetch API after ${maxRetries} retries`;
                 }
-
+                
+                Logger.log(`Error fetching the API, retrying in ${secs}s`);
                 Utilities.sleep(1000*secs);
             }
         }
