@@ -49,7 +49,7 @@ class SheetsApi {
       valueInputOption: "USER_ENTERED",
     };
 
-    const maxRetries = 5;
+    const maxRetries = 7;
     for (let i=0; i<maxRetries; i++) {
       try {
         Sheets_v4.Spreadsheets.Values
@@ -165,14 +165,6 @@ class SheetsApi {
    * @returns {*} The evaluated formula output
    */
   forceFormulasEval(row, col) {
-    const formula = this.sheetObj.getRange(row,col).getFormula();
-
-    this.sheetObj.getRange(row, col).setFormula(''); 
-    SpreadsheetApp.flush();
-
-    this.sheetObj.getRange(row, col).setFormula(formula);
-    SpreadsheetApp.flush();
-
-    return this.getCellValue(row, col);
+    return this.get(`R${row}C${col}`, 'UNFORMATTED_VALUE')[0][0];
   }
 }
