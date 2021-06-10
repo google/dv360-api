@@ -87,13 +87,26 @@ class SheetsApi {
       this.getSheetObject();
     }
 
-    return Sheets_v4.Spreadsheets.Values.get(
-        this.spreadsheetId,
-        range,
-        {
-          'valueRenderOption': renderModeString || this.defaultMode,
+    const maxRetries=7;
+    for (let i=0; i<maxRetries; i++) {
+      try {
+        return Sheets_v4.Spreadsheets.Values.get(
+            this.spreadsheetId,
+            range,
+            {'valueRenderOption': renderModeString || this.defaultMode}
+          )['values'];
+      } catch (e) {
+        const secs = 5 * (i + 1);
+        Logger.log(e);
+        
+        if (i == maxRetries-1) {
+          throw `Failed to read to sheet after ${maxRetries} retries`;
         }
-      )['values'];
+        
+        Logger.log(`Error reading sheet, retrying in ${secs}s`);
+        Utilities.sleep(1000*secs);
+      }
+    }
   }
 
   /**
