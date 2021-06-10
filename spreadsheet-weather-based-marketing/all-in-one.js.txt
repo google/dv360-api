@@ -370,7 +370,7 @@ class SheetsApi {
       valueInputOption: "USER_ENTERED",
     };
 
-    const maxRetries = 5;
+    const maxRetries = 7;
     for (let i=0; i<maxRetries; i++) {
       try {
         Sheets_v4.Spreadsheets.Values
@@ -408,13 +408,26 @@ class SheetsApi {
       this.getSheetObject();
     }
 
-    return Sheets_v4.Spreadsheets.Values.get(
-        this.spreadsheetId,
-        range,
-        {
-          'valueRenderOption': renderModeString || this.defaultMode,
+    const maxRetries=7;
+    for (let i=0; i<maxRetries; i++) {
+      try {
+        return Sheets_v4.Spreadsheets.Values.get(
+            this.spreadsheetId,
+            range,
+            {'valueRenderOption': renderModeString || this.defaultMode}
+          )['values'];
+      } catch (e) {
+        const secs = 5 * (i + 1);
+        Logger.log(e);
+        
+        if (i == maxRetries-1) {
+          throw `Failed to read to sheet after ${maxRetries} retries`;
         }
-      )['values'];
+        
+        Logger.log(`Error reading sheet, retrying in ${secs}s`);
+        Utilities.sleep(1000*secs);
+      }
+    }
   }
 
   /**
@@ -486,15 +499,7 @@ class SheetsApi {
    * @returns {*} The evaluated formula output
    */
   forceFormulasEval(row, col) {
-    const formula = this.sheetObj.getRange(row,col).getFormula();
-
-    this.sheetObj.getRange(row, col).setFormula(''); 
-    SpreadsheetApp.flush();
-
-    this.sheetObj.getRange(row, col).setFormula(formula);
-    SpreadsheetApp.flush();
-
-    return this.getCellValue(row, col);
+    return this.get(`R${row}C${col}`, 'UNFORMATTED_VALUE')[0][0];
   }
 }/* END File: ./classes/sheets.gs */
 /* START File: ./classes/config.gs */
@@ -529,7 +534,7 @@ class Config {
        * First you need to get an OpenWeather API key (aka "appid"):
        * https://openweathermap.org/appid
        */
-      'open-weather-api-key': '0fd0a47fcc8bc852ff02cd4295773dd6',
+      'open-weather-api-key': '',
 
       /** 
        * *Optional*, Imperial VS. Metric units.
@@ -1584,12 +1589,12 @@ class AnyAPI {
                 }
             } catch (e) {
                 const secs = 5 * (i + 1);
-                Logger.log(`Error fetching the API, retrying in ${secs}s`);
                 Logger.log(e);
                 if (i == maxRetries-1) {
                     throw `Failed to fetch API after ${maxRetries} retries`;
                 }
-
+                
+                Logger.log(`Error fetching the API, retrying in ${secs}s`);
                 Utilities.sleep(1000*secs);
             }
         }
@@ -1675,7 +1680,7 @@ function main(inQueue, outQueue = []) {
 
     // Iterate over the sheet data
     for (let i = 1; i < rows.length; i++) {
-        Logger.log(`LOG:main: Processing row #${i}`);
+        Logger.log(`LOG:main: Processing row #${i+1}`);
 
         // We need to make sure that `row` contains the values, not formulas.
         let row = sheetsApi.getEvaluated(rows[i], i, excludeEval);
