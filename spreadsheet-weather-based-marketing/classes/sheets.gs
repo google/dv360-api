@@ -185,7 +185,7 @@ class SheetsApi {
    * Spreadsheet API has quota of requests per minute, so each next retry will 
    *  be done after this wait time. Wait time will be increased progressively.
    * @param {int} i Current number of retries
-   * @returns {int}
+   * @returns {int} Number of seconds
    */
   getWaitTimeInSeconds(i) {
     return (i > 3 ? 10 : 5) * (i + 1)
