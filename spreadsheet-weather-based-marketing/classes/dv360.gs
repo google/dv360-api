@@ -64,7 +64,6 @@ class DV360 {
       Logger.log('HTTP code: ' + res.getResponseCode());
       Logger.log('API error: ' + res.getContentText());
       Logger.log('URL: ' + url);
-      Logger.log('params: ' + JSON.stringify(params, 0, 2));
       throw new Error(res.getContentText());
     }
 
@@ -86,7 +85,7 @@ class DV360 {
    * See more: https://developers.google.com/display-video/api/reference/rest/v1/advertisers.lineItems
    * See more: https://developers.google.com/display-video/api/reference/rest/v1/advertisers.insertionOrders
    * @param {integer} advertiserId - DV360 Advertiser ID
-   * @param {integer} entityId - DV360 Line Item ID
+   * @param {integer} entityId - DV360 Line Item/Insertion Order ID
    * @param {bool} turnOn - "true" - activate the entity, "false" - deactivate it
    */
   switchEntityStatus(advertiserId, entityId, turnOn, entity) {
@@ -134,6 +133,65 @@ class DV360 {
     const newStatus = this.switchEntityStatus(
       advertiserId, lineItemId, turnOn, 'lineItems'
     );
+  }
+
+  /**
+   * Get DV360 entity for the specified ID.
+   * See more: https://developers.google.com/display-video/api/reference/rest/v1/advertisers.lineItems
+   * See more: https://developers.google.com/display-video/api/reference/rest/v1/advertisers.insertionOrders
+   * @param {integer} advertiserId DV360 Advertiser ID
+   * @param {integer} entityId DV360 Line Item/Insertion Order ID
+   * @param {string} entity Entity (e.g. lineItems/insertionOrders), see API refernece 
+   * @returns {Object} Entity object
+   */
+  getEntity(advertiserId, entityId, entity) {
+    const url = Utilities.formatString(
+      '%s/advertisers/%s/%s/%s',
+      this.dv360EndPointPrefix,
+      advertiserId,
+      entity,
+      entityId
+    );
+
+    return this.fetchUrl(url);
+  }
+
+  /**
+   * Get DV360 entity for the specified ID.
+   * See more: https://developers.google.com/display-video/api/reference/rest/v1/advertisers.lineItems
+   * See more: https://developers.google.com/display-video/api/reference/rest/v1/advertisers.insertionOrders
+   * @param {integer} advertiserId DV360 Advertiser ID
+   * @param {integer} entityId DV360 Line Item/Insertion Order ID
+   * @param {string} entity Entity (e.g. lineItems/insertionOrders), see API refernece 
+   * @returns {Object} Entity object
+   */
+  getEntityStatus(advertiserId, entityId, entity) {
+    const e = this.getEntity(advertiserId, entityId, entity);
+    return e.entityStatus;
+  }
+
+  /**
+   * Return true if the entity is active else false
+   * 
+   * @param {int} advertiserId DV360 advertiser ID
+   * @param {int} lineItemId DV360 Line Item ID
+   * @returns {bool}
+   */
+  isLIActive(advertiserId, lineItemId) {
+    return 'ENTITY_STATUS_ACTIVE' == this
+      .getEntityStatus(advertiserId, lineItemId, 'lineItems');
+  }
+
+  /**
+   * Return true if the entity is active else false
+   * 
+   * @param {int} advertiserId DV360 advertiser ID
+   * @param {int} lineItemId DV360 Line Item ID
+   * @returns {bool}
+   */
+  isOIActive(advertiserId, insertionOrderId) {
+    return 'ENTITY_STATUS_ACTIVE' == this
+      .getEntityStatus(advertiserId, insertionOrderId, 'insertionOrders');
   }
 
 }

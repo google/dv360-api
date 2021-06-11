@@ -26,7 +26,7 @@ function onOpen(e) {
     .addItem('Check weather and sync DV360', 'monitorWeatherAndSyncWithDV360')
     .addItem('Only check weather', 'checkWeather')
     .addSeparator()
-    .addItem('Create a test config', 'createExampleTable')
+    .addItem('Create sample config', 'createExampleTable')
     .addToUi();
 }
 

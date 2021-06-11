@@ -27,21 +27,21 @@ class SheetsApi {
     /** @type {null|Object} */
     this.sheetObj = null;
 
-    /** @type {Object} */
-    this.defaultMode = {
-      'valueRenderOption': 'FORMULA',
-    };
+    /** @type {string} */
+    this.defaultMode = 'FORMULA';
   }
 
   /**
-   * Writes data to spreadsheet
+   * Save back to the sheet (retry 3 times in case of error, if after 3 times 
+   * still not written, then throw an exception).
    *
    * @param {!Array<!Array<string|number|boolean>>} rows Rows
    * @param {string} range Range
+   * @param {bool} dontFlush Do not flush the cashe for faster processing
    *
    * @return {boolean} True if successful
    */
-  write(rows, range) {
+  write(rows, range, dontFlush = false) {
     const valueRange = Sheets_v4.newValueRange();
     valueRange.values = rows;
 
@@ -49,15 +49,28 @@ class SheetsApi {
       valueInputOption: "USER_ENTERED",
     };
 
-    try {
-      Sheets_v4.Spreadsheets.Values
-        .update(valueRange, this.spreadsheetId, range, options);
-      SpreadsheetApp.flush();
-
-      return true;
-    } catch (e) {
-      Logger.log(e);
-      return false;
+    const maxRetries = 7;
+    for (let i=0; i<maxRetries; i++) {
+      try {
+        Sheets_v4.Spreadsheets.Values
+          .update(valueRange, this.spreadsheetId, range, options);
+        
+        if (!dontFlush) {
+          SpreadsheetApp.flush();
+        }
+  
+        break;
+      } catch (e) {
+        const secs = this.getWaitTimeInSeconds(i);
+        Logger.log(e);
+        
+        if (i == maxRetries-1) {
+          throw `Failed to write to sheet after ${maxRetries} retries`;
+        }
+        
+        Logger.log(`Error updating sheet, retrying in ${secs}s`);
+        Utilities.sleep(1000*secs);
+      }
     }
   }
 
@@ -65,16 +78,35 @@ class SheetsApi {
    * Fetches data from sheet
    *
    * @param {string} range A1-Range
-   * @param {string} renderMode Render mode, [more info](https://developers.google.com/sheets/api/reference/rest/v4/ValueRenderOption)
+   * @param {string|bool} renderMode Render mode, [more info](https://developers.google.com/sheets/api/reference/rest/v4/ValueRenderOption)
    *
    * @return {!Array<!Array<!Object>>}
    */
-  get(range, renderMode) {
-    return Sheets_v4.Spreadsheets.Values.get(
-        this.spreadsheetId,
-        range,
-        renderMode || this.defaultMode
-      )['values'];
+  get(range, renderModeString = false) {
+    if (! this.spreadsheetId) {
+      this.getSheetObject();
+    }
+
+    const maxRetries=7;
+    for (let i=0; i<maxRetries; i++) {
+      try {
+        return Sheets_v4.Spreadsheets.Values.get(
+            this.spreadsheetId,
+            range,
+            {'valueRenderOption': renderModeString || this.defaultMode}
+          )['values'];
+      } catch (e) {
+        const secs = this.getWaitTimeInSeconds(i);
+        Logger.log(e);
+        
+        if (i == maxRetries-1) {
+          throw `Failed to read to sheet after ${maxRetries} retries`;
+        }
+        
+        Logger.log(`Error reading sheet, retrying in ${secs}s`);
+        Utilities.sleep(1000*secs);
+      }
+    }
   }
 
   /**
@@ -91,6 +123,28 @@ class SheetsApi {
     }
 
     return this.sheetObj.getRange(row, col).getValues()[0][0];
+  }
+
+  /**
+   * Get values for the formulas in the row
+   *
+   * @param {Array} row Data from the sheet
+   * @param {integer} rowNum Row number in the sheet
+   * @param {Array} excludeIdx Do not evaluate these array elements
+   * @returns {Array} Evaluated data
+   */
+  getEvaluated(row, rowNum, excludeIdx) {
+    for (let i=0; i<row.length; i++) {
+      if (
+        excludeIdx.indexOf(i) < 0
+        && 'string' == typeof row[i]
+        && row[i].startsWith('=')
+      ) {
+        row[i] = this.getCellValue(rowNum+1, i+1);
+      }
+    }
+
+    return row;
   }
 
   /**
@@ -119,15 +173,21 @@ class SheetsApi {
   /**
    * Process sheet formulas (force them to be re-evaluated)
    *
-   * @param {string} range A1-Range
+   * @param {number} row Row number
+   * @param {number} col Column number
+   * @returns {*} The evaluated formula output
    */
   forceFormulasEval(row, col) {
-    const formula = this.sheetObj.getRange(row,col).getFormula();
+    return this.get(`R${row}C${col}`, 'UNFORMATTED_VALUE')[0][0];
+  }
 
-    this.sheetObj.getRange(row, col).setFormula(''); 
-    SpreadsheetApp.flush();
-
-    this.sheetObj.getRange(row, col).setFormula(formula);
-    SpreadsheetApp.flush();
+  /**
+   * Spreadsheet API has quota of requests per minute, so each next retry will 
+   *  be done after this wait time. Wait time will be increased progressively.
+   * @param {int} i Current number of retries
+   * @returns {int} Number of seconds
+   */
+  getWaitTimeInSeconds(i) {
+    return (i > 3 ? 10 : 5) * (i + 1)
   }
 }

@@ -32,6 +32,12 @@ class Config {
       'open-weather-api-key': '',
 
       /** 
+       * *Optional*, Imperial VS. Metric units.
+       * Possible values: "standard" (default, if empty), "metric" and "imperial"
+       */
+      'open-weather-api-units': 'metric',
+
+      /** 
        * *Optional*, only if you want to use a service account.
        * If you leave this parameter empty, apps script will use
        * an active Google account under which you run the apps script. 
@@ -65,6 +71,8 @@ class Config {
       'col-lon':                'Longitude',
       'col-formula':            'Activation Formula',
       'col-last-updated':       'Last Updated',
+      'col-api-url':            'Api URL',
+      'col-api-headers':        'Api Headers',
 
       // Spreadsheet headers
       'headers': [],
@@ -87,17 +95,27 @@ class Config {
    * @param headers Headers array
    */
   setHeaders(headers) {
-    this.config.headers = headers;
+    this.config.headers = [...headers];
   }
 
   /**
    * Returns the index of the header entity
    * 
-   * @param {string} name Header notation (from `this.config`) we are looking for
+   * @param {string} name Header notation (from `this.config`) we are looking for.
+   * @param {*} defaultValue Default value if the entry is not found.
    * @return {integer} Index, if not exists then -1.
    */
-  getHeaderIndex(name) {
-    return this.config.headers.indexOf(this.config[name]);
+  getHeaderIndex(name, defaultValue) {
+    const idx = this.config.headers.indexOf(this.config[name]);
+    if (-1 === idx) {
+      if ('undefined' === typeof defaultValue) {
+        throw `ERROR: Column '${name}' not found.`;
+      }
+
+      return defaultValue;
+    }
+
+    return idx;
   }
 
   /**

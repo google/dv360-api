@@ -43,60 +43,30 @@ class Utils {
   }
 
   /**
-   * Get JSON entry value for the provided path (similar to XPath in XML)
-   *
-   * @param {string} path Format "<entity>.<entity>.<array index>.<entity>"
-   * @param {JSON} json JSON or JavaScript Object
-   * @returns {*|null} Value from JSON or null if value does not exist
+   * Combine two arrays of the same size to the JSON.
+   * 
+   * @param {Array} a1 Array for keys
+   * @param {Array} a2 Array for values
+   * @returns {Object} Json { a1.element: a2.element, ... }
    */
-  static getValueFromJSON(path, json) {
-    let tmpJson  = json, 
-        val       = null;
-    
-    for (const part of path.split('.')) {
-      if (part.startsWith('!')) {
-        return Utils.getAgregatedValueFromJSON(part.substring(1), tmpJson);
-      }
+  static arraysToJson(a1, a2) {
+    const result = {};
+    a1.forEach((key, i) => { result[ key ] = a2[ i ] });
 
-      let tmpVal;
-      const intVal = parseInt(part);
-      if (intVal && intVal in tmpJson) {
-        tmpVal = tmpJson[intVal];
-      } else if (tmpJson.hasOwnProperty(part)) {
-        tmpVal = tmpJson[part];
-      } else {
-        break;
-      }
-      
-      const typeOf = typeof tmpVal;
-      if ('string' == typeOf || 'number' == typeOf) {
-        return tmpVal;
-      } else {
-        tmpJson = tmpVal;
-      }
-    }
-
-    return val;
+    return result;
   }
 
   /**
-   * Get aggregated value (e.g. MAX, MIN, etc.) from JSON entry values.
-   *
-   * @param {string} aggFunction Aggregation function (now only MIN and MAX function are supported)
-   * @param {JSON} json JSON or JavaScript Object
-   * @returns {number} Agregated value from JSON
+   * Logging of the successful processing (in CSV format for the further analysis).
+   * `[ROW DATA]` is just a label, so the logs can be filtered out by it.
+   * 
+   * @param {Array} row The spreadsheet row
+   * @param {string} label A lable to be added to the log message
+   * @returns {void}
    */
-  static getAgregatedValueFromJSON(aggFunction, json) {
-    switch (aggFunction.toLowerCase()) {
-      case 'min':
-        return Math.min.apply(Math, Object.values(json));
-        
-      case 'max':
-        return Math.max.apply(Math, Object.values(json));
-
-      default:
-        throw `Aggregation function "${aggFunction}" is not supported`;
-    }
+  static logRowData(row, label='[ROW DATA]') {
+    row.push(label);
+    Logger.log(row.join(','));
   }
 }
 
