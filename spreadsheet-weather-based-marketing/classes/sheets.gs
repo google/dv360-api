@@ -61,7 +61,7 @@ class SheetsApi {
   
         break;
       } catch (e) {
-        const secs = 5 * (i + 1);
+        const secs = this.getWaitTimeInSeconds(i);
         Logger.log(e);
         
         if (i == maxRetries-1) {
@@ -96,7 +96,7 @@ class SheetsApi {
             {'valueRenderOption': renderModeString || this.defaultMode}
           )['values'];
       } catch (e) {
-        const secs = 5 * (i + 1);
+        const secs = this.getWaitTimeInSeconds(i);
         Logger.log(e);
         
         if (i == maxRetries-1) {
@@ -179,5 +179,15 @@ class SheetsApi {
    */
   forceFormulasEval(row, col) {
     return this.get(`R${row}C${col}`, 'UNFORMATTED_VALUE')[0][0];
+  }
+
+  /**
+   * Spreadsheet API has quota of requests per minute, so each next retry will 
+   *  be done after this wait time. Wait time will be increased progressively.
+   * @param {int} i Current number of retries
+   * @returns {int}
+   */
+  getWaitTimeInSeconds(i) {
+    return (i > 3 ? 10 : 5) * (i + 1)
   }
 }
